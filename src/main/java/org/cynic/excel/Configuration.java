@@ -36,7 +36,7 @@ public class Configuration {
     @Bean
     Credential googleDriveCredentials(@Value("${google.api.client_security_path}") String googleApiClientIdPath,
                                       @Value("${google.api.client_token_store}") String googleAuthTicketStorePath,
-                                      @Value("${server.port") int serverPort,
+                                      @Value("${server.port}") int serverPort,
                                       JsonFactory jsonFactory) {
         try {
             try (Reader reader = new InputStreamReader(getClass().getResourceAsStream(googleApiClientIdPath))) {
@@ -50,7 +50,7 @@ public class Configuration {
                         setAccessType("offline").
                         build();
 
-                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver.Builder().setPort(serverPort).build()) {
+                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver.Builder().setHost("excel-api-cynic.herokuapp.com/").setPort(serverPort).build()) {
                     private final Logger LOGGER = LoggerFactory.getLogger(AuthorizationCodeInstalledApp.class);
 
                     @Override
