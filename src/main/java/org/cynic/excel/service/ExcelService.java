@@ -32,15 +32,15 @@ public class ExcelService {
     );
     private static final Detector CONTENT_TYPE_DETECTOR = new DefaultDetector();
 
-    private final Credential credential;
-    private final JsonFactory jsonFactory;
+    private final Credential credential = null;
+    private final JsonFactory jsonFactory = null;
 
-
-    @Autowired
-    public ExcelService(Credential credential, JsonFactory jsonFactory) {
-        this.credential = credential;
-        this.jsonFactory = jsonFactory;
-    }
+//
+//    @Autowired
+//    public ExcelService(Credential credential, JsonFactory jsonFactory) {
+//        this.credential = credential;
+//        this.jsonFactory = jsonFactory;
+//    }
 
     public final void validateFiles(Pair<String, byte[]> firstFile, Pair<String, byte[]> secondFile) {
         LOGGER.info("validateFiles({},{})", firstFile, secondFile);
