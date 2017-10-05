@@ -18,7 +18,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 
@@ -33,6 +36,7 @@ public class Configuration {
     @Bean
     Credential googleDriveCredentials(@Value("${google.api.client_security_path}") String googleApiClientIdPath,
                                       @Value("${google.api.client_token_store}") String googleAuthTicketStorePath,
+                                      @Value("${server.port") int serverPort,
                                       JsonFactory jsonFactory) {
         try {
             try (Reader reader = new InputStreamReader(getClass().getResourceAsStream(googleApiClientIdPath))) {
@@ -46,7 +50,7 @@ public class Configuration {
                         setAccessType("offline").
                         build();
 
-                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver()) {
+                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver.Builder().setPort(serverPort).build()) {
                     private final Logger LOGGER = LoggerFactory.getLogger(AuthorizationCodeInstalledApp.class);
 
                     @Override
