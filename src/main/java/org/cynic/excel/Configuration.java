@@ -50,7 +50,7 @@ public class Configuration {
                         setAccessType("offline").
                         build();
 
-                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver.Builder().setPort(8778).build()) {
+                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver.Builder().setPort(8443).build()) {
                     private final Logger LOGGER = LoggerFactory.getLogger(AuthorizationCodeInstalledApp.class);
 
                     @Override
