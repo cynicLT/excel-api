@@ -1,0 +1,1 @@
+web: ./deployments/excel-api.jar
