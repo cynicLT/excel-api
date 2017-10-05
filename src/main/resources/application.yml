@@ -1,2 +1,18 @@
 server:
   port: ${PORT:8080}
+  error:
+    whitelabel:
+      enabled: false
+spring:
+  jmx:
+    enabled: false
+  main:
+    banner-mode: 'off'
+  resources:
+    add-mappings: false
+  mvc:
+    favicon:
+      enabled: false
+    formcontent:
+      putfilter:
+        enabled: false
