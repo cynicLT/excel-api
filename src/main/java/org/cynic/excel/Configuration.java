@@ -32,6 +32,7 @@ public class Configuration {
         return JacksonFactory.getDefaultInstance();
     }
 
+
     @Autowired
     @Bean
     Credential googleDriveCredentials(@Value("${google.api.client_security_path}") String googleApiClientIdPath,
@@ -46,10 +47,10 @@ public class Configuration {
                         googleClientSecrets,
                         Collections.singletonList(DriveScopes.DRIVE)).
                         setDataStoreFactory(new FileDataStoreFactory(new File(googleAuthTicketStorePath))).
-                        setAccessType("offline").
+                        setAccessType("online").
                         build();
 
-                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver.Builder().setHost("excel-api-cynic.herokuapp.com").setPort(80).build()) {
+                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver()) {
                     private final Logger LOGGER = LoggerFactory.getLogger(AuthorizationCodeInstalledApp.class);
 
                     @Override
