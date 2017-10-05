@@ -4,6 +4,7 @@ import javafx.util.Pair;
 import org.cynic.excel.controller.AbstractV1Controller;
 import org.cynic.excel.service.ExcelService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,12 +24,17 @@ public class ExcelController extends AbstractV1Controller {
     }
 
     @PostMapping("/merge-files")
-    public Callable<byte[]> mergeFiles(@RequestParam("firstFile") MultipartFile firstFile, @RequestParam("secondFile") MultipartFile secondFile) throws IOException {
+    public Callable<ResponseEntity> mergeFiles(@RequestParam("firstFile") MultipartFile firstFile, @RequestParam("secondFile") MultipartFile secondFile) throws IOException {
         Pair<String, byte[]> firstFileData = new Pair<>(firstFile.getOriginalFilename(), firstFile.getBytes());
         Pair<String, byte[]> secondFileData = new Pair<>(secondFile.getOriginalFilename(), secondFile.getBytes());
 
-        excelService.validateFiles(firstFileData, secondFileData);
 
-        return () -> excelService.mergeFiles(firstFileData, secondFileData);
+        return () -> {
+            excelService.validateFiles(firstFileData, secondFileData);
+            Pair<String, byte[]> mergedFileData = excelService.mergeFiles(firstFileData, secondFileData);
+            excelService.saveFile(mergedFileData);
+
+            return ResponseEntity.noContent().build();
+        };
     }
 }
