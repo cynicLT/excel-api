@@ -1,6 +1,6 @@
 package org.cynic.excel.controller.v1;
 
-import javafx.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.cynic.excel.controller.AbstractV1Controller;
 import org.cynic.excel.service.ExcelService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +25,8 @@ public class ExcelController extends AbstractV1Controller {
 
     @PostMapping("/merge-files")
     public Callable<ResponseEntity> mergeFiles(@RequestParam("firstFile") MultipartFile firstFile, @RequestParam("secondFile") MultipartFile secondFile) throws IOException {
-        Pair<String, byte[]> firstFileData = new Pair<>(firstFile.getOriginalFilename(), firstFile.getBytes());
-        Pair<String, byte[]> secondFileData = new Pair<>(secondFile.getOriginalFilename(), secondFile.getBytes());
+        Pair<String, byte[]> firstFileData = Pair.of(firstFile.getOriginalFilename(), firstFile.getBytes());
+        Pair<String, byte[]> secondFileData = Pair.of(secondFile.getOriginalFilename(), secondFile.getBytes());
 
 
         return () -> {
