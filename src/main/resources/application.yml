@@ -3,7 +3,9 @@ server:
   error:
     whitelabel:
       enabled: false
+
 spring:
+
   jmx:
     enabled: false
   main:
@@ -11,6 +13,7 @@ spring:
   resources:
     add-mappings: false
   mvc:
+    throw-exception-if-no-handler-found: true
     favicon:
       enabled: false
     formcontent:
