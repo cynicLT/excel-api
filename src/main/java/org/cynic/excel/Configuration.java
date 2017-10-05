@@ -47,7 +47,7 @@ public class Configuration {
                         googleClientSecrets,
                         Collections.singletonList(DriveScopes.DRIVE)).
                         setDataStoreFactory(new FileDataStoreFactory(new File(googleAuthTicketStorePath))).
-                        setAccessType("online").
+                        setAccessType("offline").
                         build();
 
                 return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver()) {
