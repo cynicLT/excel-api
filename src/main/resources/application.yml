@@ -27,6 +27,7 @@ google:
 ---
 spring:
   profiles: heroku
+
 google:
   api:
     client_token_store: '/app/client_token_store'
