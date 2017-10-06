@@ -22,4 +22,12 @@ spring:
 google:
   api:
     client_security_path: '/client_secret.json'
+    client_token_store: 'client_token_store'
+
+---
+spring:
+  profiles: heroku
+
+google:
+  api:
     client_token_store: '/app/client_token_store'

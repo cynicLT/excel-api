@@ -1,1 +1,1 @@
-web: ./target/excel-api.jar
+web: java -jar target/excel-api.jar -Dspring.profiles.active=heroku
