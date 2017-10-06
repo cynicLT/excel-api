@@ -1,6 +1,5 @@
 package org.cynic.excel;
 
-import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -50,16 +49,16 @@ public class Configuration {
                         setAccessType("offline").
                         build();
 
-                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver.Builder().setPort(8443).build()) {
+                return new AuthorizationCodeInstalledApp(googleAuthorizationCodeFlow, new LocalServerReceiver()) {
                     private final Logger LOGGER = LoggerFactory.getLogger(AuthorizationCodeInstalledApp.class);
 
                     @Override
-                    protected void onAuthorization(AuthorizationCodeRequestUrl authorizationUrl) throws IOException {
-                        LOGGER.warn("");
-                        LOGGER.warn("****************************************************************");
-                        LOGGER.warn("Please open this path in browser and authorize application: {}", authorizationUrl.build());
-                        LOGGER.warn("****************************************************************");
-                        LOGGER.warn("");
+                    public Credential authorize(String userId) throws IOException {
+                        Credential credential = getFlow().loadCredential(userId);
+
+                        LOGGER.error("{}", credential);
+
+                        return credential;
                     }
                 }.authorize("application");
             } catch (GeneralSecurityException e) {

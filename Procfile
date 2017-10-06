@@ -1,1 +1,1 @@
-web: ./deployments/excel-api.jar
+web: ./target/excel-api.jar
