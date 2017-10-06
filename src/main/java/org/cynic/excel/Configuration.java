@@ -1,5 +1,6 @@
 package org.cynic.excel;
 
+import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -54,11 +55,14 @@ public class Configuration {
 
                     @Override
                     public Credential authorize(String userId) throws IOException {
-                        Credential credential = getFlow().loadCredential(userId);
+                        return getFlow().loadCredential(userId);
+                    }
 
-                        LOGGER.error("{}", credential);
+                    @Override
+                    protected void onAuthorization(AuthorizationCodeRequestUrl authorizationUrl) throws IOException {
+                        LOGGER.warn("Unable to read stored authorization token from {}", googleAuthTicketStorePath);
 
-                        return credential;
+                        throw new IllegalArgumentException(String.format("This application wasn't authorized to access Google Drive. Please use this url to create credentials token: [%s]", authorizationUrl.build()));
                     }
                 }.authorize("application");
             } catch (GeneralSecurityException e) {
