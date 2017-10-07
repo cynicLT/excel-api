@@ -16,16 +16,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.web.ErrorMvcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {ErrorMvcAutoConfiguration.class})
 public class Configuration {
     @Bean
     JsonFactory jsonFactory() {
@@ -39,7 +37,7 @@ public class Configuration {
                                       @Value("${google.api.client_token_store}") String googleAuthTicketStorePath,
                                       JsonFactory jsonFactory) {
         try {
-            try (Reader reader = new InputStreamReader(getClass().getResourceAsStream(googleApiClientIdPath))) {
+            try (Reader reader = new InputStreamReader(new FileInputStream(googleApiClientIdPath))) {
                 GoogleClientSecrets googleClientSecrets = GoogleClientSecrets.load(jsonFactory, reader);
                 GoogleAuthorizationCodeFlow googleAuthorizationCodeFlow = new GoogleAuthorizationCodeFlow.Builder(
                         GoogleNetHttpTransport.newTrustedTransport(),

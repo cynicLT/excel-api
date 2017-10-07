@@ -2,7 +2,7 @@ server:
   error:
     whitelabel:
       enabled: false
-
+      
 spring:
   jmx:
     enabled: false
@@ -18,10 +18,18 @@ spring:
       putfilter:
         enabled: false
 
+security:
+  basic:
+    realm: 'JAEX Authorization'
+    authorize-mode: 'authenticated'
+  user:
+    name: 'jaex_client'
+    password: 'jaex_client_password'
+  sessions: 'stateless'
 
 google:
   api:
-    client_security_path: '/client_secret.json'
+    client_security_path: 'client_secret.json'
     client_token_store: 'client_token_store'
 
 ---
@@ -31,3 +39,4 @@ spring:
 google:
   api:
     client_token_store: '/app/client_token_store'
+    client_security_path: '/app/client_secret.json'
