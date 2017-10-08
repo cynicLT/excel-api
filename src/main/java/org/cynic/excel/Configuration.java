@@ -58,9 +58,8 @@ public class Configuration {
 
                     @Override
                     protected void onAuthorization(AuthorizationCodeRequestUrl authorizationUrl) throws IOException {
-                        LOGGER.warn("Unable to read stored authorization token from {}", googleAuthTicketStorePath);
-
-                        throw new IllegalArgumentException(String.format("This application wasn't authorized to access Google Drive. Please use this url to create credentials token: [%s]", authorizationUrl.build()));
+                        LOGGER.warn("Unable to read stored authorization token from [{}]", googleAuthTicketStorePath);
+                        LOGGER.warn("This application wasn't authorized to access Google Drive. Please use this url to create credentials token: [{}]", authorizationUrl.build());
                     }
                 }.authorize("application");
             } catch (GeneralSecurityException e) {
