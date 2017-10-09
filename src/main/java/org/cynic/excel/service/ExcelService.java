@@ -56,14 +56,6 @@ public class ExcelService {
 
     }
 
-    private void validateType(Pair<String, byte[]> fileData) {
-        String mimeType = detectContentType(fileData.getValue());
-        if (!ALLOWED_MIME_TYPES.contains(mimeType)) {
-            throw new IllegalArgumentException(
-                    String.format("File '%s' type '%s' is not supported. Supported types are: '%s'", fileData.getKey(), mimeType, ALLOWED_MIME_TYPES)
-            );
-        }
-    }
 
     public Pair<String, byte[]> mergeFiles(Pair<String, byte[]> firstFileData, Pair<String, byte[]> secondFileData) {
         LOGGER.info("mergeFiles({},{})", firstFileData, secondFileData);
@@ -82,7 +74,7 @@ public class ExcelService {
         Drive drive = connectToDrive(credential);
 
         try {
-            AbstractInputStreamContent inputStreamContent = new ByteArrayContent(detectContentType(mergedFileData.getValue()), mergedFileData.getValue());
+            AbstractInputStreamContent inputStreamContent = new ByteArrayContent(detectContentType(mergedFileData), mergedFileData.getValue());
             drive.files().
                     create(new com.google.api.services.drive.model.File().
                                     setName(mergedFileData.getKey()),
@@ -95,9 +87,22 @@ public class ExcelService {
         }
     }
 
-    private String detectContentType(byte[] data) {
+
+    private void validateType(Pair<String, byte[]> fileData) {
+        String mimeType = detectContentType(fileData);
+        if (!ALLOWED_MIME_TYPES.contains(mimeType)) {
+            throw new IllegalArgumentException(
+                    String.format("File '%s' type '%s' is not supported. Supported types are: '%s'", fileData.getKey(), mimeType, ALLOWED_MIME_TYPES)
+            );
+        }
+    }
+
+    private String detectContentType(Pair<String, byte[]> fileData) {
         try {
-            return CONTENT_TYPE_DETECTOR.detect(new ByteArrayInputStream(data), new Metadata()).toString();
+            Metadata metadata = new Metadata();
+            metadata.set(Metadata.RESOURCE_NAME_KEY, fileData.getKey());
+
+            return CONTENT_TYPE_DETECTOR.detect(new ByteArrayInputStream(fileData.getValue()), metadata).toString();
         } catch (IOException e) {
             throw new IllegalArgumentException("Unable to detect MIME-TYPE of provided file", e);
         }
