@@ -10,11 +10,18 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.metadata.Metadata;
+import org.cynic.excel.config.DataItem;
+import org.cynic.excel.config.RuleConfiguration;
+import org.cynic.excel.config.RulesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -31,13 +38,16 @@ public class ExcelService {
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
     private static final Detector CONTENT_TYPE_DETECTOR = new DefaultDetector();
+    private static final ScriptEngineManager SCRIPT_ENGINE_MANAGER = new ScriptEngineManager();
 
     private final Credential credential;
     private final JsonFactory jsonFactory;
+    private final RulesConfiguration rulesConfiguration;
 
 
     @Autowired
-    public ExcelService(Credential credential, JsonFactory jsonFactory) {
+    public ExcelService(RulesConfiguration rulesConfiguration, Credential credential, JsonFactory jsonFactory) {
+        this.rulesConfiguration = rulesConfiguration;
         this.credential = credential;
         this.jsonFactory = jsonFactory;
     }
@@ -47,26 +57,51 @@ public class ExcelService {
 
         validateType(firstFile);
         validateType(secondFile);
-
-/**
- * TODO: Validate
- * (1) structure
- *
- */
-
     }
-
 
     public Pair<String, byte[]> mergeFiles(Pair<String, byte[]> firstFileData, Pair<String, byte[]> secondFileData) {
         LOGGER.info("mergeFiles({},{})", firstFileData, secondFileData);
 /**
- * TODO: implement:
- *  (1) check file type by signature
- *  (2) define source and destination files
- *  (3) merge files by rule
+ * TODO:
+ * check which is source which is destination
  */
+        RuleConfiguration ruleConfiguration = rulesConfiguration.
+                getRules().
+                stream().
+                filter(rule -> {
+                    List<String> data = readDataFromFile(firstFileData, rule.getConstraint().getData());
+                    return evaluateExpression(rule.getConstraint().getExpression(), data);
+                }).
+                findFirst().
+                orElseThrow(() -> new IllegalArgumentException("Unable to find mapping rules to provides files"));
 
+        return copyData(ruleConfiguration, firstFileData, secondFileData);
+    }
+
+    private Pair<String, byte[]> copyData(RuleConfiguration ruleConfiguration, Pair<String, byte[]> firstFileData, Pair<String, byte[]> secondFileData) {
+        /**
+         * TODO: copy data
+         */
         return firstFileData;
+    }
+
+    private boolean evaluateExpression(String expression, List<String> data) {
+        ScriptEngine scriptEngine = SCRIPT_ENGINE_MANAGER.getEngineByName("nashorn");
+
+        try {
+            scriptEngine.eval(String.format("function checkConstraint(data){ %s}", expression));
+
+            return Boolean.class.cast(Invocable.class.cast(scriptEngine).invokeFunction("checkConstraint", data));
+        } catch (ScriptException | NoSuchMethodException e) {
+            throw new IllegalArgumentException(String.format("Unable to execute constraint validation. Detailed message: %s", e.getMessage()));
+        }
+    }
+
+    private List<String> readDataFromFile(Pair<String, byte[]> firstFileData, List<DataItem> constraint) {
+/**
+ * TODO: read data from file
+ */
+        return null;
     }
 
     public void saveFile(Pair<String, byte[]> mergedFileData) {
@@ -86,7 +121,6 @@ public class ExcelService {
             throw new IllegalArgumentException("Unable to upload file to Google Drive", e);
         }
     }
-
 
     private void validateType(Pair<String, byte[]> fileData) {
         String mimeType = detectContentType(fileData);

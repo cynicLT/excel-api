@@ -28,7 +28,6 @@ public class ExcelController extends AbstractV1Controller {
         Pair<String, byte[]> firstFileData = Pair.of(firstFile.getOriginalFilename(), firstFile.getBytes());
         Pair<String, byte[]> secondFileData = Pair.of(secondFile.getOriginalFilename(), secondFile.getBytes());
 
-
         return () -> {
             excelService.validateFiles(firstFileData, secondFileData);
             Pair<String, byte[]> mergedFileData = excelService.mergeFiles(firstFileData, secondFileData);

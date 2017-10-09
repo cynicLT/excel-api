@@ -2,6 +2,7 @@ server:
   error:
     whitelabel:
       enabled: false
+  port: 8081
       
 spring:
   jmx:
@@ -32,6 +33,44 @@ google:
     client_security_path: 'client_secret.json'
     client_token_store: 'client_token_store'
 
+
+rules:
+  - name: 'Quantity Buy Sheet Found'
+    constraint:
+      data:
+        - row: 6
+          column: 1
+        - row: 0
+          column: 11
+      expression: |
+        console.log("JS can be used in Java and will be called with parameters from data[]");
+        return true;
+    values:
+      - start:
+          row: 21
+          column: 0
+        end:
+          row: 50
+      - start:
+          row: 21
+          column: 4
+        end:
+          row: 50
+  - name: 'Safeway Inc.'
+    constraint:
+      data:
+        - row: 0
+          column: 5
+      expression: |
+        console.log("JS can be used in Java and will be called with parameters from data[]");
+        return false;
+    values:
+      - start:
+          row: 5
+          column: 5
+        end:
+          row: 10
+
 ---
 spring:
   profiles: heroku
@@ -40,3 +79,4 @@ google:
   api:
     client_token_store: '/app/client_token_store'
     client_security_path: '/app/client_secret.json'
+
