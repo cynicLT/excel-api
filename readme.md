@@ -19,6 +19,7 @@ security:
 ###Google OAuth
 To get access to the `Google Drive` client security token must be created and application must be authorized.
 To create and export `client security token` use following instruction:
+
 1. Create or select a project in the Google Developers Console and automatically turn on the API. Click **Continue**, then **Go to credentials**.
 2. On the **Add credentials to your project** page, click the **Cancel** button.
 3. At the top of the page, select the **OAuth consent screen** tab. Select an **Email address**, enter a **Product name** if not already set, and click the **Save** button.
@@ -29,6 +30,7 @@ To create and export `client security token` use following instruction:
 
 To authorize application following steps must be done:
 Due to the `Google API` limitations this step can not be done automatically. Following steps must be done:
+
 1. Build application `mvn clean package`
 2. Save exported `client security token` in application root directory under the name `client_secret.json`
 2. Run application `java -jar target/excel-api.jar` 
@@ -48,5 +50,32 @@ google:
     client_security_path: 'client_secret.json'  # client security token
     client_token_store: 'client_token_store'    # authorization daata
 ```
-
+###Mapping configuration
+Mapping configuration is defined in specific structure to make dynamic configuration;
+```yaml
+rules:
+  - name: 'Quantity Buy Sheet Found'             # name of the rule
+    constraint:
+      data:                                      # data to be used to validate constraint rule
+        - row: 6
+          column: 1
+        - row: 0
+          column: 11
+      expression: |                              # constraint expression in JS language (data parameter is passed to make validations)
+        console.log("JS can be used in Java and will be called with parameters from data[]");
+        return true;
+    values:                                      # values to be copied from source file
+      - start:
+          row: 21
+          column: 0
+        end:
+          row: 50                                # optional (may be NULL)
+      - start:
+          row: 21
+          column: 4
+        end:
+          row: 50
+...
+... 
+```
 
