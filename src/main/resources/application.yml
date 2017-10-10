@@ -50,13 +50,9 @@ rules:
       - start:
           row: 21
           column: 0
-        end:
-          row: 50
       - start:
           row: 21
           column: 4
-        end:
-          row: 50
   - name: 'Safeway Inc.'
     constraint:
       data:
@@ -68,8 +64,6 @@ rules:
       - start:
           row: 5
           column: 5
-        end:
-          row: 10
 
 ---
 spring:

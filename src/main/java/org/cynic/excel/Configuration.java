@@ -20,7 +20,6 @@ import org.springframework.boot.autoconfigure.web.ErrorMvcAutoConfiguration;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerCustomizer;
 import org.springframework.boot.web.servlet.ErrorPage;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.multipart.MultipartException;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
@@ -62,7 +61,7 @@ public class Configuration {
 
                     @Override
                     protected void onAuthorization(AuthorizationCodeRequestUrl authorizationUrl) throws IOException {
-                        LOGGER.warn("Unable to read stored authorization token from [{}]", googleAuthTicketStorePath);
+                        LOGGER.warn("Unable to readConstraintValues stored authorization token from [{}]", googleAuthTicketStorePath);
                         LOGGER.warn("This application wasn't authorized to access Google Drive. Please use this url to create credentials token: [{}]", authorizationUrl.build());
                     }
                 }.authorize("application");
@@ -70,7 +69,7 @@ public class Configuration {
                 throw new IllegalArgumentException("General HTTP security error while creating authorization flow", e);
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException("Unable to read Google Drive Client ID secret", e);
+            throw new IllegalArgumentException("Unable to readConstraintValues Google Drive Client ID secret", e);
         }
     }
 

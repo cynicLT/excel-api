@@ -14,6 +14,7 @@ import org.cynic.excel.config.DataItem;
 import org.cynic.excel.config.RuleConfiguration;
 import org.cynic.excel.config.RulesConfiguration;
 import org.cynic.excel.data.FileFormat;
+import org.cynic.excel.service.manager.FileManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,6 @@ import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -49,17 +49,23 @@ public class ExcelService {
 
     private final Credential credential;
     private final JsonFactory jsonFactory;
+    private final FileManagerFactory fileManagerFactory;
     private final RulesConfiguration rulesConfiguration;
 
     @Autowired
-    public ExcelService(RulesConfiguration rulesConfiguration, Credential credential, JsonFactory jsonFactory) {
+    public ExcelService(RulesConfiguration rulesConfiguration,
+                        Credential credential,
+                        JsonFactory jsonFactory,
+                        FileManagerFactory fileManagerFactory) {
         this.rulesConfiguration = rulesConfiguration;
         this.credential = credential;
         this.jsonFactory = jsonFactory;
+        this.fileManagerFactory = fileManagerFactory;
     }
 
     public FileFormat getFileFormat(Pair<String, byte[]> fileData) {
         String mimeType = detectContentType(fileData);
+
         if (ALLOWED_MIME_TYPES.contains(mimeType)) {
             return CSV_MIME_TYPE.equals(mimeType) ?
                     FileFormat.CSV :
@@ -87,40 +93,6 @@ public class ExcelService {
         return copyData(ruleConfiguration, sourceFileData, destinationFileData);
     }
 
-    private Pair<String, byte[]> copyData(RuleConfiguration ruleConfiguration, Pair<FileFormat, byte[]> sourceFileData, Pair<FileFormat, byte[]> destinationFileData) {
-        /**
-         * TODO: copy data
-         */
-        return Pair.of(
-                String.format(
-                        "%s-%s.%s",
-                        ruleConfiguration.getName(),
-                        LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                        sourceFileData.getKey().name().toLowerCase()
-                ),
-                sourceFileData.getRight()
-        );
-    }
-
-    private boolean evaluateExpression(String expression, List<String> data) {
-        ScriptEngine scriptEngine = SCRIPT_ENGINE_MANAGER.getEngineByName("nashorn");
-
-        try {
-            scriptEngine.eval(String.format("function checkConstraint(data){ %s}", expression));
-
-            return Boolean.class.cast(Invocable.class.cast(scriptEngine).invokeFunction("checkConstraint", data));
-        } catch (ScriptException | NoSuchMethodException e) {
-            throw new IllegalArgumentException(String.format("Unable to execute constraint validation. Detailed message: %s", e.getMessage()));
-        }
-    }
-
-    private List<String> readDataFromFile(Pair<FileFormat, byte[]> sourceFileData, List<DataItem> constraintData) {
-/**
- * TODO: read data from file
- */
-        return Collections.singletonList("item");
-    }
-
     public void saveFile(Pair<String, byte[]> mergedFileData) {
         LOGGER.info("saveFile({})", mergedFileData);
         Drive drive = connectToDrive(credential);
@@ -139,6 +111,39 @@ public class ExcelService {
         }
     }
 
+    private Pair<String, byte[]> copyData(RuleConfiguration ruleConfiguration, Pair<FileFormat, byte[]> sourceFileData, Pair<FileFormat, byte[]> destinationFileData) {
+        List<Pair<DataItem, List<String>>> sourceData = fileManagerFactory.getFileManager(sourceFileData.getKey()).
+                readSourceData(ruleConfiguration.getValues(), sourceFileData.getValue());
+
+        return Pair.of(
+                String.format(
+                        "%s-%s.%s",
+                        ruleConfiguration.getName(),
+                        LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                        sourceFileData.getKey().name().toLowerCase()
+                ),
+                fileManagerFactory.getFileManager(destinationFileData.getKey()).
+                        pasteReadData(sourceData, destinationFileData.getRight())
+        );
+    }
+
+    private boolean evaluateExpression(String expression, List<String> data) {
+        ScriptEngine scriptEngine = SCRIPT_ENGINE_MANAGER.getEngineByName("nashorn");
+
+        try {
+            scriptEngine.eval(String.format("function checkConstraint(data){ %s }", expression));
+
+            return Boolean.class.cast(Invocable.class.cast(scriptEngine).invokeFunction("checkConstraint", data));
+        } catch (ScriptException | NoSuchMethodException e) {
+            throw new IllegalArgumentException("Unable to execute constraint validation.", e);
+        }
+    }
+
+    private List<String> readDataFromFile(Pair<FileFormat, byte[]> sourceFileData, List<DataItem> constraintData) {
+        return fileManagerFactory.getFileManager(sourceFileData.getKey()).
+                readConstraintValues(constraintData, sourceFileData.getValue());
+    }
+
     private String detectContentType(Pair<String, byte[]> fileData) {
         try {
             Metadata metadata = new Metadata();
@@ -146,7 +151,7 @@ public class ExcelService {
 
             return CONTENT_TYPE_DETECTOR.detect(new ByteArrayInputStream(fileData.getValue()), metadata).toString();
         } catch (IOException e) {
-            throw new IllegalArgumentException("Unable to detect MIME-TYPE of provided file", e);
+            throw new IllegalArgumentException("Unable to detect MIME-TYPE of provided file.", e);
         }
     }
 
