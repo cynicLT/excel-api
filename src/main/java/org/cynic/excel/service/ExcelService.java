@@ -13,6 +13,7 @@ import org.apache.tika.metadata.Metadata;
 import org.cynic.excel.config.DataItem;
 import org.cynic.excel.config.RuleConfiguration;
 import org.cynic.excel.config.RulesConfiguration;
+import org.cynic.excel.data.FileFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,25 +26,30 @@ import javax.script.ScriptException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Component
 public class ExcelService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExcelService.class);
+    private static final String CSV_MIME_TYPE = "text/csv";
+
     private static final List<String> ALLOWED_MIME_TYPES = Arrays.asList(
-            "text/csv",
+            CSV_MIME_TYPE,
             "application/vnd.ms-excel",
             "application/msexcel",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
+
     private static final Detector CONTENT_TYPE_DETECTOR = new DefaultDetector();
     private static final ScriptEngineManager SCRIPT_ENGINE_MANAGER = new ScriptEngineManager();
 
     private final Credential credential;
     private final JsonFactory jsonFactory;
     private final RulesConfiguration rulesConfiguration;
-
 
     @Autowired
     public ExcelService(RulesConfiguration rulesConfiguration, Credential credential, JsonFactory jsonFactory) {
@@ -52,37 +58,48 @@ public class ExcelService {
         this.jsonFactory = jsonFactory;
     }
 
-    public final void validateFiles(Pair<String, byte[]> firstFile, Pair<String, byte[]> secondFile) {
-        LOGGER.info("validateFiles({},{})", firstFile, secondFile);
-
-        validateType(firstFile);
-        validateType(secondFile);
+    public FileFormat getFileFormat(Pair<String, byte[]> fileData) {
+        String mimeType = detectContentType(fileData);
+        if (ALLOWED_MIME_TYPES.contains(mimeType)) {
+            return CSV_MIME_TYPE.equals(mimeType) ?
+                    FileFormat.CSV :
+                    FileFormat.XLS;
+        } else {
+            throw new IllegalArgumentException(
+                    String.format("File '%s' type '%s' is not supported. Supported types are: '%s'", fileData.getKey(), mimeType, ALLOWED_MIME_TYPES)
+            );
+        }
     }
 
-    public Pair<String, byte[]> mergeFiles(Pair<String, byte[]> firstFileData, Pair<String, byte[]> secondFileData) {
-        LOGGER.info("mergeFiles({},{})", firstFileData, secondFileData);
-/**
- * TODO:
- * check which is source which is destination
- */
+    public Pair<String, byte[]> mergeFiles(Pair<FileFormat, byte[]> sourceFileData, Pair<FileFormat, byte[]> destinationFileData) {
+        LOGGER.info("mergeFiles({},{})", sourceFileData, destinationFileData);
+
         RuleConfiguration ruleConfiguration = rulesConfiguration.
                 getRules().
                 stream().
                 filter(rule -> {
-                    List<String> data = readDataFromFile(firstFileData, rule.getConstraint().getData());
+                    List<String> data = readDataFromFile(sourceFileData, rule.getConstraint().getData());
                     return evaluateExpression(rule.getConstraint().getExpression(), data);
                 }).
                 findFirst().
-                orElseThrow(() -> new IllegalArgumentException("Unable to find mapping rules to provides files"));
+                orElseThrow(() -> new IllegalArgumentException("Unable to find mapping rules to provided source file"));
 
-        return copyData(ruleConfiguration, firstFileData, secondFileData);
+        return copyData(ruleConfiguration, sourceFileData, destinationFileData);
     }
 
-    private Pair<String, byte[]> copyData(RuleConfiguration ruleConfiguration, Pair<String, byte[]> firstFileData, Pair<String, byte[]> secondFileData) {
+    private Pair<String, byte[]> copyData(RuleConfiguration ruleConfiguration, Pair<FileFormat, byte[]> sourceFileData, Pair<FileFormat, byte[]> destinationFileData) {
         /**
          * TODO: copy data
          */
-        return firstFileData;
+        return Pair.of(
+                String.format(
+                        "%s-%s.%s",
+                        ruleConfiguration.getName(),
+                        LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                        sourceFileData.getKey().name().toLowerCase()
+                ),
+                sourceFileData.getRight()
+        );
     }
 
     private boolean evaluateExpression(String expression, List<String> data) {
@@ -97,11 +114,11 @@ public class ExcelService {
         }
     }
 
-    private List<String> readDataFromFile(Pair<String, byte[]> firstFileData, List<DataItem> constraint) {
+    private List<String> readDataFromFile(Pair<FileFormat, byte[]> sourceFileData, List<DataItem> constraintData) {
 /**
  * TODO: read data from file
  */
-        return null;
+        return Collections.singletonList("item");
     }
 
     public void saveFile(Pair<String, byte[]> mergedFileData) {
@@ -119,15 +136,6 @@ public class ExcelService {
                     execute();
         } catch (IOException e) {
             throw new IllegalArgumentException("Unable to upload file to Google Drive", e);
-        }
-    }
-
-    private void validateType(Pair<String, byte[]> fileData) {
-        String mimeType = detectContentType(fileData);
-        if (!ALLOWED_MIME_TYPES.contains(mimeType)) {
-            throw new IllegalArgumentException(
-                    String.format("File '%s' type '%s' is not supported. Supported types are: '%s'", fileData.getKey(), mimeType, ALLOWED_MIME_TYPES)
-            );
         }
     }
 

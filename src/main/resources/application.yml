@@ -43,7 +43,6 @@ rules:
         - row: 0
           column: 11
       expression: |
-        console.log("JS can be used in Java and will be called with parameters from data[]");
         return true;
     values:
       - start:
@@ -62,7 +61,6 @@ rules:
         - row: 0
           column: 5
       expression: |
-        console.log("JS can be used in Java and will be called with parameters from data[]");
         return false;
     values:
       - start:

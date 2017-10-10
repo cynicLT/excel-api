@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-@ConfigurationProperties(prefix = "rules")
+@ConfigurationProperties
 public class RulesConfiguration {
     private List<RuleConfiguration> rules = new ArrayList<>();
 

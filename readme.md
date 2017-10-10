@@ -8,6 +8,7 @@ java -Dspring.config.location=file:///d:/application.yml -jar target/excel-api.j
 ```
 
 ###Security
+
 Security mechanism is implemented using `Basic` with `stateless` session management (on each new request authorization header must be provided). To define authorized username and password used following configuration
 ```yaml
 security:
@@ -17,6 +18,7 @@ security:
 ```
 
 ###Google OAuth
+
 To get access to the `Google Drive` client security token must be created and application must be authorized.
 To create and export `client security token` use following instruction:
 
@@ -48,9 +50,10 @@ To configure paths to them use following configuration:
 google:
   api:
     client_security_path: 'client_secret.json'  # client security token
-    client_token_store: 'client_token_store'    # authorization daata
+    client_token_store: 'client_token_store'    # authorization data
 ```
 ###Mapping configuration
+
 Mapping configuration is defined in specific structure to make dynamic configuration;
 ```yaml
 rules:
