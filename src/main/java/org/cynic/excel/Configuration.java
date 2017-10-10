@@ -17,8 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.web.ErrorMvcAutoConfiguration;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.embedded.EmbeddedServletContainerCustomizer;
+import org.springframework.boot.web.servlet.ErrorPage;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.multipart.MultipartException;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
@@ -70,5 +72,10 @@ public class Configuration {
         } catch (IOException e) {
             throw new IllegalArgumentException("Unable to read Google Drive Client ID secret", e);
         }
+    }
+
+    @Bean
+    public EmbeddedServletContainerCustomizer containerCustomizer() {
+        return container -> container.addErrorPages(new ErrorPage(Throwable.class, "/error"));
     }
 }

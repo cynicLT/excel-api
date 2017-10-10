@@ -27,6 +27,8 @@ security:
     name: 'jaex_client'
     password: 'jaex_client_password'
   sessions: 'stateless'
+  ignored: '/error'
+
 
 google:
   api:

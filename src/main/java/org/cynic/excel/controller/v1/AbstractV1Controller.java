@@ -1,4 +1,4 @@
-package org.cynic.excel.controller;
+package org.cynic.excel.controller.v1;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 
