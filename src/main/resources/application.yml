@@ -37,33 +37,22 @@ google:
 
 
 rules:
-  - name: 'Quantity Buy Sheet Found'
+  - name: 'CSV transofmration'
     constraint:
       data:
-        - row: 6
-          column: 1
-        - row: 0
-          column: 11
-      expression: |
-        return true;
-    values:
-      - start:
-          row: 21
+        - row: 1
           column: 0
-      - start:
-          row: 21
-          column: 4
-  - name: 'Safeway Inc.'
-    constraint:
-      data:
-        - row: 0
-          column: 5
+        - row: 1
+          column: 1
       expression: |
-        return false;
+        return parseInt(data[0]) + parseInt(data[1]) == 2;
     values:
       - start:
-          row: 5
-          column: 5
+          row: 1
+          column: 2
+      - start:
+          row: 1
+          column: 4
 
 ---
 spring:
