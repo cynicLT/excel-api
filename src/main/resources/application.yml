@@ -3,7 +3,10 @@ server:
     whitelabel:
       enabled: false
   port: 8081
-      
+
+#logging:
+#  level.: ERROR
+
 spring:
   jmx:
     enabled: false
@@ -48,12 +51,13 @@ rules:
         return parseInt(data[0]) + parseInt(data[1]) == 2;
     values:
       - start:
-          row: 1
+          row: 5
           column: 2
       - start:
-          row: 1
+          row: 3
           column: 4
-
+csv:
+  separator: ','
 ---
 spring:
   profiles: heroku
@@ -62,4 +66,3 @@ google:
   api:
     client_token_store: '/app/client_token_store'
     client_security_path: '/app/client_secret.json'
-

@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,13 +37,15 @@ import java.util.List;
 public class ExcelService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExcelService.class);
     private static final String CSV_MIME_TYPE = "text/csv";
-
-    private static final List<String> ALLOWED_MIME_TYPES = Arrays.asList(
-            CSV_MIME_TYPE,
+    private static final List<String> XLS_MIME_TYPE = Arrays.asList(
             "application/vnd.ms-excel",
-            "application/msexcel",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
+            "application/msexcel");
+
+    private static final List<String> ALLOWED_MIME_TYPES = new ArrayList<String>() {{
+        add(CSV_MIME_TYPE);
+        add("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        addAll(XLS_MIME_TYPE);
+    }};
 
     private static final Detector CONTENT_TYPE_DETECTOR = new DefaultDetector();
     private static final ScriptEngineManager SCRIPT_ENGINE_MANAGER = new ScriptEngineManager();
@@ -69,7 +72,9 @@ public class ExcelService {
         if (ALLOWED_MIME_TYPES.contains(mimeType)) {
             return CSV_MIME_TYPE.equals(mimeType) ?
                     FileFormat.CSV :
-                    FileFormat.XLS;
+                    XLS_MIME_TYPE.contains(mimeType) ?
+                            FileFormat.XLS :
+                            FileFormat.XLSX;
         } else {
             throw new IllegalArgumentException(
                     String.format("File '%s' type '%s' is not supported. Supported types are: '%s'", fileData.getKey(), mimeType, ALLOWED_MIME_TYPES)
@@ -120,7 +125,7 @@ public class ExcelService {
                         "%s-%s.%s",
                         ruleConfiguration.getName(),
                         LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                        sourceFileData.getKey().name().toLowerCase()
+                        destinationFileData.getKey().name().toLowerCase()
                 ),
                 fileManagerFactory.getFileManager(destinationFileData.getKey()).
                         pasteReadData(sourceData, destinationFileData.getRight())

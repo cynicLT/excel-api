@@ -82,3 +82,15 @@ rules:
 ... 
 ```
 
+###File readers
+
+####CSV file reader
+To configure CSV file value separator use following configuration (default is ","):
+```yaml
+csv:
+  separator: ','
+```
+
+
+
+

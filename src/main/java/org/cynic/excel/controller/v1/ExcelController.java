@@ -10,13 +10,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.concurrent.Callable;
 
 @RestController
 public class ExcelController extends AbstractV1Controller {
 
-    private ExcelService excelService;
+    private final ExcelService excelService;
 
     @Autowired
     public ExcelController(ExcelService excelService) {
@@ -24,7 +23,8 @@ public class ExcelController extends AbstractV1Controller {
     }
 
     @PostMapping("/merge-files")
-    public Callable<ResponseEntity> mergeFiles(@RequestParam("sourceFile") MultipartFile sourceFile, @RequestParam("destinationFile") MultipartFile destinationFile) throws IOException {
+    public Callable<ResponseEntity> mergeFiles(@RequestParam("sourceFile") MultipartFile sourceFile,
+                                               @RequestParam("destinationFile") MultipartFile destinationFile) {
 
         return () -> {
             Pair<FileFormat, byte[]> sourceFileData = Pair.of(

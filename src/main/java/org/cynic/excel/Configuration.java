@@ -55,14 +55,11 @@ public class Configuration {
                     private final Logger LOGGER = LoggerFactory.getLogger(AuthorizationCodeInstalledApp.class);
 
                     @Override
-                    public Credential authorize(String userId) throws IOException {
-                        return getFlow().loadCredential(userId);
-                    }
-
-                    @Override
                     protected void onAuthorization(AuthorizationCodeRequestUrl authorizationUrl) throws IOException {
                         LOGGER.warn("Unable to readConstraintValues stored authorization token from [{}]", googleAuthTicketStorePath);
                         LOGGER.warn("This application wasn't authorized to access Google Drive. Please use this url to create credentials token: [{}]", authorizationUrl.build());
+
+                        super.onAuthorization(authorizationUrl);
                     }
                 }.authorize("application");
             } catch (GeneralSecurityException e) {
@@ -75,6 +72,6 @@ public class Configuration {
 
     @Bean
     public EmbeddedServletContainerCustomizer containerCustomizer() {
-        return container -> container.addErrorPages(new ErrorPage(Throwable.class, "/error"));
+        return container -> container.addErrorPages(new ErrorPage("/error"));
     }
 }

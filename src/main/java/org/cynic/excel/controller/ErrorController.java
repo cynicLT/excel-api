@@ -9,17 +9,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.WebUtils;
 
+import java.util.Optional;
+
 @RestController
 public class ErrorController {
     private static final Logger LOGGER = LoggerFactory.getLogger(ErrorController.class);
 
-    @RequestMapping("/error")
-    public ResponseEntity<String> handleException(@RequestAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE) Throwable exception) {
+    @RequestMapping(path = "/error")
+    public ResponseEntity<String> handleException(@RequestAttribute(required = false, name = WebUtils.ERROR_EXCEPTION_ATTRIBUTE) Throwable throwable,
+                                                  @RequestAttribute(WebUtils.ERROR_MESSAGE_ATTRIBUTE) String errorMessage) {
+        Throwable exception = Optional.ofNullable(throwable).orElse(new IllegalArgumentException(errorMessage));
+
         logError(exception);
 
         return ResponseEntity.
                 badRequest().
-                body(ExceptionUtils.getRootCause(exception).getMessage());
+                body(Optional.ofNullable(ExceptionUtils.getRootCause(exception)).orElse(exception).getMessage());
     }
 
     private void logError(Throwable exception) {

@@ -1,6 +1,8 @@
 package org.cynic.excel.service.manager;
 
+import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 import com.opencsv.CSVWriter;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
@@ -11,11 +13,17 @@ import java.io.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class CsvFileManager implements FileManager {
+class CsvFileManager extends FileManager {
+
+    private final char csvSeparator;
+
+    CsvFileManager(char csvSeparator) {
+        this.csvSeparator = csvSeparator;
+    }
 
     @Override
     public List<String> readConstraintValues(List<DataItem> items, byte[] source) {
-        CSVReader csvReader = new CSVReader(new InputStreamReader(new ByteArrayInputStream(source)));
+        CSVReader csvReader = getCsvReader(source);
 
         try {
             List<String[]> csvData = csvReader.readAll();
@@ -34,26 +42,12 @@ class CsvFileManager implements FileManager {
 
     @Override
     public List<Pair<DataItem, List<String>>> readSourceData(List<RuleValues> values, byte[] source) {
-        CSVReader csvReader = new CSVReader(new InputStreamReader(new ByteArrayInputStream(source)));
+        CSVReader csvReader = getCsvReader(source);
 
         try {
             List<String[]> csvData = csvReader.readAll();
 
-            return values.stream().map(ruleValues -> {
-                DataItem dataItem = ruleValues.getStart();
-                Validate.isTrue(csvData.size() > dataItem.getRow(), String.format("Bad source data column row %d", dataItem.getRow()));
-
-                return Pair.of(
-                        dataItem,
-                        csvData.subList(dataItem.getRow(), csvData.size()).
-                                stream().
-                                map(rowData -> {
-                                    Validate.isTrue(rowData.length > dataItem.getColumn(), String.format("Bad source data column index %d", dataItem.getRow()));
-                                    return rowData[dataItem.getColumn()];
-                                }).
-                                collect(Collectors.toList())
-                );
-            }).collect(Collectors.toList());
+            return internalReadData(values, csvData);
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid CSV file format.", e);
         }
@@ -61,7 +55,7 @@ class CsvFileManager implements FileManager {
 
     @Override
     public byte[] pasteReadData(List<Pair<DataItem, List<String>>> readData, byte[] destination) {
-        CSVReader csvReader = new CSVReader(new InputStreamReader(new ByteArrayInputStream(destination)));
+        CSVReader csvReader = getCsvReader(destination);
 
         try {
             List<String[]> csvData = csvReader.readAll();
@@ -86,5 +80,13 @@ class CsvFileManager implements FileManager {
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid CSV file format.", e);
         }
+    }
+
+    private CSVReader getCsvReader(byte[] source) {
+        return new CSVReaderBuilder(new InputStreamReader(new ByteArrayInputStream(source))).withCSVParser(
+                new CSVParserBuilder().
+                        withSeparator(csvSeparator).
+                        build()).
+                build();
     }
 }

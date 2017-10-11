@@ -1,12 +1,14 @@
 package org.cynic.excel.service.manager;
 
+import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.cynic.excel.config.DataItem;
 import org.cynic.excel.config.RuleValues;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-public interface FileManager {
+public abstract class FileManager {
     /**
      * Read values for constraint
      *
@@ -14,7 +16,7 @@ public interface FileManager {
      * @param source source file
      * @return values for constraint
      */
-    List<String> readConstraintValues(List<DataItem> items, byte[] source);
+    public abstract List<String> readConstraintValues(List<DataItem> items, byte[] source);
 
     /**
      * Read data from source
@@ -23,7 +25,7 @@ public interface FileManager {
      * @param source source file
      * @return readConstraintValues data
      */
-    List<Pair<DataItem, List<String>>> readSourceData(List<RuleValues> values, byte[] source);
+    public abstract List<Pair<DataItem, List<String>>> readSourceData(List<RuleValues> values, byte[] source);
 
     /**
      * Paste readConstraintValues data into file
@@ -32,6 +34,24 @@ public interface FileManager {
      * @param destination destination file
      * @return merged file
      */
-    byte[] pasteReadData(List<Pair<DataItem, List<String>>> readData, byte[] destination);
+    public abstract byte[] pasteReadData(List<Pair<DataItem, List<String>>> readData, byte[] destination);
+
+    List<Pair<DataItem, List<String>>> internalReadData(List<RuleValues> values, List<String[]> xslData) {
+        return values.stream().map(ruleValues -> {
+            DataItem dataItem = ruleValues.getStart();
+            Validate.isTrue(xslData.size() > dataItem.getRow(), String.format("Bad source data column row %d", dataItem.getRow()));
+
+            return Pair.of(
+                    dataItem,
+                    xslData.subList(dataItem.getRow(), xslData.size()).
+                            stream().
+                            map(rowData -> {
+                                Validate.isTrue(rowData.length > dataItem.getColumn(), String.format("Bad source data column index %d", dataItem.getRow()));
+                                return rowData[dataItem.getColumn()];
+                            }).
+                            collect(Collectors.toList())
+            );
+        }).collect(Collectors.toList());
+    }
 
 }
