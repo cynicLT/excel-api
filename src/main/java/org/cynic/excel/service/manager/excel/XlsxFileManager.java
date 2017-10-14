@@ -1,5 +1,6 @@
-package org.cynic.excel.service.manager;
+package org.cynic.excel.service.manager.excel;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.poi.ss.usermodel.Row;
@@ -9,6 +10,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.cynic.excel.config.DataItem;
 import org.cynic.excel.config.RuleValues;
+import org.cynic.excel.data.FieldFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,9 +21,9 @@ import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-class XlsxFileManager extends FileManager {
+public class XlsxFileManager extends AbstractExcelFileManager {
     @Override
-    public List<String> readConstraintValues(List<DataItem> items, byte[] source) {
+    public List<Pair<FieldFormat, ?>> readConstraintValues(List<DataItem> items, byte[] source) {
         try {
             XSSFWorkbook xssfWorkbook = new XSSFWorkbook(new ByteArrayInputStream(source));
             XSSFSheet xssfSheet = xssfWorkbook.getSheetAt(0);
@@ -31,25 +33,35 @@ class XlsxFileManager extends FileManager {
                 XSSFRow xssfRow = xssfSheet.getRow(dataItem.getRow());
 
                 Validate.isTrue(xssfRow.getPhysicalNumberOfCells() > dataItem.getColumn(), String.format("Bad constraint data column index %d", dataItem.getRow()));
-                return xssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL).getRawValue();
+                XSSFCell xssfCell = xssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+
+                FieldFormat fieldFormat = getFieldFormat(xssfCell);
+
+                return Pair.of(fieldFormat, toFieldValue(fieldFormat, xssfCell));
             }).collect(Collectors.toList());
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid XLSX file format.", e);
         }
     }
 
+
     @Override
-    public List<Pair<DataItem, List<String>>> readSourceData(List<RuleValues> values, byte[] source) {
+    public List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> readSourceData(List<RuleValues> values, byte[] source) {
         try {
             XSSFWorkbook xssfWorkbook = new XSSFWorkbook(new ByteArrayInputStream(source));
             XSSFSheet xssfSheet = xssfWorkbook.getSheetAt(0);
 
-            List<String[]> xslData = StreamSupport.stream(
-                    Spliterators.spliteratorUnknownSize(xssfSheet.rowIterator(), Spliterator.ORDERED),
-                    false).map(row -> StreamSupport.stream(
-                    Spliterators.spliteratorUnknownSize(row.cellIterator(), Spliterator.ORDERED),
-                    false).map(Object::toString).collect(Collectors.toList()).toArray(new String[0])).collect(Collectors.toList());
+            List<List<Pair<FieldFormat, Object>>> xslData = StreamSupport.stream(
+                    Spliterators.spliteratorUnknownSize(xssfSheet.rowIterator(), Spliterator.ORDERED), false).
+                    map(row -> StreamSupport.stream(Spliterators.spliteratorUnknownSize(row.cellIterator(), Spliterator.ORDERED), false).
+                            map(XSSFCell.class::cast).
+                            map(xssfCell -> {
+                                FieldFormat fieldFormat = getFieldFormat(xssfCell);
 
+                                return Pair.of(fieldFormat, toFieldValue(fieldFormat, xssfCell));
+                            }).
+                            collect(Collectors.toList())).
+                    collect(Collectors.toList());
             return internalReadData(values, xslData);
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid XLSX file format.", e);
@@ -57,7 +69,7 @@ class XlsxFileManager extends FileManager {
     }
 
     @Override
-    public byte[] pasteReadData(List<Pair<DataItem, List<String>>> readData, byte[] destination) {
+    public byte[] pasteReadData(List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> readData, byte[] destination) {
         try {
             XSSFWorkbook xssfWorkbook = new XSSFWorkbook(new ByteArrayInputStream(destination));
             XSSFSheet xssfSheet = xssfWorkbook.getSheetAt(0);
@@ -70,7 +82,10 @@ class XlsxFileManager extends FileManager {
                     XSSFRow xssfRow = xssfSheet.getRow(rowIndex);
 
                     XSSFCell xssfCell = xssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    xssfCell.setCellValue(dataItemListPair.getValue().get(rowIndex - dataItem.getRow()));
+
+                    if (CollectionUtils.isNotEmpty(dataItemListPair.getValue())) {
+                        setCellValue(xssfCell, dataItemListPair.getValue().get(rowIndex - dataItem.getRow()));
+                    }
                 }
             });
 

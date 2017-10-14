@@ -1,4 +1,4 @@
-package org.cynic.excel.service.manager;
+package org.cynic.excel.service.manager.excel;
 
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
@@ -10,23 +10,20 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.cynic.excel.config.DataItem;
 import org.cynic.excel.config.RuleValues;
+import org.cynic.excel.data.FieldFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.DecimalFormat;
-import java.text.Format;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-class XlsFileManager extends FileManager {
-    private static final Format DECIMAL_FORMAT = new DecimalFormat("#.#############");
-
+public class XlsFileManager extends AbstractExcelFileManager {
     @Override
-    public List<String> readConstraintValues(List<DataItem> items, byte[] source) {
+    public List<Pair<FieldFormat, ?>> readConstraintValues(List<DataItem> items, byte[] source) {
         try {
             HSSFWorkbook hssfWorkbook = new HSSFWorkbook(new ByteArrayInputStream(source));
             HSSFSheet hssfSheet = hssfWorkbook.getSheetAt(0);
@@ -38,7 +35,9 @@ class XlsFileManager extends FileManager {
                 Validate.isTrue(hssfRow.getPhysicalNumberOfCells() > dataItem.getColumn(), String.format("Bad constraint data column index %d", dataItem.getRow()));
                 HSSFCell hssfCell = hssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
 
-                return hssfCell.toString();
+                FieldFormat fieldFormat = getFieldFormat(hssfCell);
+
+                return Pair.of(fieldFormat, toFieldValue(fieldFormat, hssfCell));
             }).collect(Collectors.toList());
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid XLS file format.", e);
@@ -46,25 +45,31 @@ class XlsFileManager extends FileManager {
     }
 
     @Override
-    public List<Pair<DataItem, List<String>>> readSourceData(List<RuleValues> values, byte[] source) {
+    public List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> readSourceData(List<RuleValues> values, byte[] source) {
         try {
             HSSFWorkbook hssfWorkbook = new HSSFWorkbook(new ByteArrayInputStream(source));
             HSSFSheet hssfSheet = hssfWorkbook.getSheetAt(0);
 
-            List<String[]> xslData = StreamSupport.stream(
-                    Spliterators.spliteratorUnknownSize(hssfSheet.rowIterator(), Spliterator.ORDERED),
-                    false).map(row -> StreamSupport.stream(
-                    Spliterators.spliteratorUnknownSize(row.cellIterator(), Spliterator.ORDERED),
-                    false).map(Object::toString).collect(Collectors.toList()).toArray(new String[0])).collect(Collectors.toList());
+            List<List<Pair<FieldFormat, Object>>> xslData = StreamSupport.stream(
+                    Spliterators.spliteratorUnknownSize(hssfSheet.rowIterator(), Spliterator.ORDERED), false).
+                    map(row -> StreamSupport.stream(Spliterators.spliteratorUnknownSize(row.cellIterator(), Spliterator.ORDERED), false).
+                            map(HSSFCell.class::cast).
+                            map(hssfCell -> {
+                                FieldFormat fieldFormat = getFieldFormat(hssfCell);
 
+                                return Pair.of(fieldFormat, toFieldValue(fieldFormat, hssfCell));
+                            }).
+                            collect(Collectors.toList())).
+                    collect(Collectors.toList());
             return internalReadData(values, xslData);
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid XLS file format.", e);
         }
     }
 
+
     @Override
-    public byte[] pasteReadData(List<Pair<DataItem, List<String>>> readData, byte[] destination) {
+    public byte[] pasteReadData(List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> readData, byte[] destination) {
         try {
             HSSFWorkbook hssfWorkbook = new HSSFWorkbook(new ByteArrayInputStream(destination));
             HSSFSheet hssfSheet = hssfWorkbook.getSheetAt(0);
@@ -76,8 +81,9 @@ class XlsFileManager extends FileManager {
                 for (int rowIndex = dataItem.getRow(); rowIndex < hssfSheet.getPhysicalNumberOfRows(); rowIndex++) {
                     HSSFRow hssfRow = hssfSheet.getRow(rowIndex);
 
-                    HSSFCell hssfCell = hssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.RETURN_NULL_AND_BLANK);
-                    hssfCell.setCellValue(dataItemListPair.getValue().get(rowIndex - dataItem.getRow()));
+                    HSSFCell hssfCell = hssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+
+                    setCellValue(hssfCell, dataItemListPair.getValue().get(rowIndex - dataItem.getRow()));
                 }
             });
 
@@ -89,4 +95,6 @@ class XlsFileManager extends FileManager {
             throw new IllegalArgumentException("Invalid XLS file format.", e);
         }
     }
+
+
 }
