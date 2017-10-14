@@ -7,13 +7,17 @@ import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.services.drive.Drive;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.util.IOUtils;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.metadata.Metadata;
 import org.cynic.excel.config.DataItem;
 import org.cynic.excel.config.RuleConfiguration;
 import org.cynic.excel.config.RulesConfiguration;
+import org.cynic.excel.data.FieldFormat;
 import org.cynic.excel.data.FileFormat;
+import org.cynic.excel.service.manager.FileManager;
 import org.cynic.excel.service.manager.FileManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +29,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
@@ -32,6 +37,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class ExcelService {
@@ -89,8 +95,12 @@ public class ExcelService {
                 getRules().
                 stream().
                 filter(rule -> {
-                    List<String> data = readDataFromFile(sourceFileData, rule.getConstraint().getData());
-                    return evaluateExpression(rule.getConstraint().getExpression(), data);
+                    List<Pair<FieldFormat, ?>> data = readDataFromFile(sourceFileData, rule.getConstraint().getData());
+
+                    return evaluateExpression(
+                            rule.getConstraint().getExpression(),
+                            data.stream().map(Pair::getValue).collect(Collectors.toList())
+                    );
                 }).
                 findFirst().
                 orElseThrow(() -> new IllegalArgumentException("Unable to find mapping rules to provided source file"));
@@ -100,24 +110,35 @@ public class ExcelService {
 
     public void saveFile(Pair<String, byte[]> mergedFileData) {
         LOGGER.info("saveFile({})", mergedFileData);
-        Drive drive = connectToDrive(credential);
-
         try {
-            AbstractInputStreamContent inputStreamContent = new ByteArrayContent(detectContentType(mergedFileData), mergedFileData.getValue());
-            drive.files().
-                    create(new com.google.api.services.drive.model.File().
-                                    setName(mergedFileData.getKey()),
-                            inputStreamContent
-                    ).
-                    setFields("id").
-                    execute();
+            FileOutputStream d =     new FileOutputStream("result.xlsx");
+            d.write(mergedFileData.getRight());
+            d.flush();
+            d.close();
         } catch (IOException e) {
-            throw new IllegalArgumentException("Unable to upload file to Google Drive", e);
+            e.printStackTrace();
         }
+//
+//
+//
+//        Drive drive = connectToDrive(credential);
+//
+//        try {
+//            AbstractInputStreamContent inputStreamContent = new ByteArrayContent(detectContentType(mergedFileData), mergedFileData.getValue());
+//            drive.files().
+//                    create(new com.google.api.services.drive.model.File().
+//                                    setName(mergedFileData.getKey()),
+//                            inputStreamContent
+//                    ).
+//                    setFields("id").
+//                    execute();
+//        } catch (IOException e) {
+//            throw new IllegalArgumentException("Unable to upload file to Google Drive", e);
+//        }
     }
 
     private Pair<String, byte[]> copyData(RuleConfiguration ruleConfiguration, Pair<FileFormat, byte[]> sourceFileData, Pair<FileFormat, byte[]> destinationFileData) {
-        List<Pair<DataItem, List<String>>> sourceData = fileManagerFactory.getFileManager(sourceFileData.getKey()).
+        List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> sourceData = fileManagerFactory.getFileManager(sourceFileData.getKey()).
                 readSourceData(ruleConfiguration.getValues(), sourceFileData.getValue());
 
         return Pair.of(
@@ -132,7 +153,7 @@ public class ExcelService {
         );
     }
 
-    private boolean evaluateExpression(String expression, List<String> data) {
+    private boolean evaluateExpression(String expression, List<?> data) {
         ScriptEngine scriptEngine = SCRIPT_ENGINE_MANAGER.getEngineByName("nashorn");
 
         try {
@@ -144,7 +165,7 @@ public class ExcelService {
         }
     }
 
-    private List<String> readDataFromFile(Pair<FileFormat, byte[]> sourceFileData, List<DataItem> constraintData) {
+    private List<Pair<FieldFormat, ?>> readDataFromFile(Pair<FileFormat, byte[]> sourceFileData, List<DataItem> constraintData) {
         return fileManagerFactory.getFileManager(sourceFileData.getKey()).
                 readConstraintValues(constraintData, sourceFileData.getValue());
     }

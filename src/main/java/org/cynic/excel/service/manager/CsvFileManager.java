@@ -8,10 +8,12 @@ import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.cynic.excel.config.DataItem;
 import org.cynic.excel.config.RuleValues;
+import org.cynic.excel.data.FieldFormat;
 
 import java.io.*;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class CsvFileManager extends FileManager {
 
@@ -22,7 +24,7 @@ class CsvFileManager extends FileManager {
     }
 
     @Override
-    public List<String> readConstraintValues(List<DataItem> items, byte[] source) {
+    public List<Pair<FieldFormat, ?>> readConstraintValues(List<DataItem> items, byte[] source) {
         CSVReader csvReader = getCsvReader(source);
 
         try {
@@ -33,7 +35,7 @@ class CsvFileManager extends FileManager {
                 String[] rowData = csvData.get(dataItem.getRow());
 
                 Validate.isTrue(rowData.length > dataItem.getColumn(), String.format("Bad constraint data column index %d", dataItem.getRow()));
-                return rowData[dataItem.getColumn()];
+                return Pair.of(FieldFormat.STRING, rowData[dataItem.getColumn()]);
             }).collect(Collectors.toList());
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid CSV file format.", e);
@@ -41,20 +43,26 @@ class CsvFileManager extends FileManager {
     }
 
     @Override
-    public List<Pair<DataItem, List<String>>> readSourceData(List<RuleValues> values, byte[] source) {
+    public List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> readSourceData(List<RuleValues> values, byte[] source) {
         CSVReader csvReader = getCsvReader(source);
 
         try {
-            List<String[]> csvData = csvReader.readAll();
-
-            return internalReadData(values, csvData);
+            return internalReadData(values, toFiledTypeList(csvReader.readAll()));
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid CSV file format.", e);
         }
     }
 
+    private List<List<Pair<FieldFormat, Object>>> toFiledTypeList(List<String[]> values) {
+        return values.stream().
+                map(row -> Stream.of(row).
+                        map(cell -> Pair.of(FieldFormat.STRING, Object.class.cast(cell))).
+                        collect(Collectors.toList())).
+                collect(Collectors.toList());
+    }
+
     @Override
-    public byte[] pasteReadData(List<Pair<DataItem, List<String>>> readData, byte[] destination) {
+    public byte[] pasteReadData(List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> readData, byte[] destination) {
         CSVReader csvReader = getCsvReader(destination);
 
         try {
@@ -67,7 +75,7 @@ class CsvFileManager extends FileManager {
                 for (int rowIndex = dataItem.getRow(); rowIndex < csvData.size(); rowIndex++) {
                     String[] rowData = csvData.get(rowIndex);
                     Validate.isTrue(rowData.length > dataItem.getColumn(), String.format("Bad source data column index %d", dataItem.getRow()));
-                    rowData[dataItem.getColumn()] = dataItemListPair.getValue().get(rowIndex - dataItem.getRow());
+                    rowData[dataItem.getColumn()] = String.valueOf(dataItemListPair.getValue().get(rowIndex - dataItem.getRow()).getValue());
                 }
             });
 

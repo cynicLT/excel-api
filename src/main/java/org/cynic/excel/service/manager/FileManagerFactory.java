@@ -1,6 +1,8 @@
 package org.cynic.excel.service.manager;
 
 import org.cynic.excel.data.FileFormat;
+import org.cynic.excel.service.manager.excel.XlsFileManager;
+import org.cynic.excel.service.manager.excel.XlsxFileManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
