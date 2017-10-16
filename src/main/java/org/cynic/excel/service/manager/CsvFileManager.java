@@ -4,18 +4,21 @@ import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.CSVWriter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
-import org.apache.commons.lang3.tuple.Pair;
-import org.cynic.excel.config.DataItem;
-import org.cynic.excel.config.RuleValues;
-import org.cynic.excel.data.FieldFormat;
+import org.cynic.excel.data.CellFormat;
+import org.cynic.excel.data.CellItem;
+import org.cynic.excel.data.config.DataItem;
+import org.cynic.excel.data.config.RuleValues;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
-class CsvFileManager extends FileManager {
+class CsvFileManager implements FileManager {
 
     private final char csvSeparator;
 
@@ -24,59 +27,80 @@ class CsvFileManager extends FileManager {
     }
 
     @Override
-    public List<Pair<FieldFormat, ?>> readConstraintValues(List<DataItem> items, byte[] source) {
+    public List<CellItem> readConstraintValues(List<DataItem> items, byte[] source) {
         CSVReader csvReader = getCsvReader(source);
 
         try {
             List<String[]> csvData = csvReader.readAll();
 
-            return items.stream().map(dataItem -> {
-                Validate.isTrue(csvData.size() > dataItem.getRow(), String.format("Bad constraint data column row %d", dataItem.getRow()));
-                String[] rowData = csvData.get(dataItem.getRow());
+            return items.parallelStream().
+                    map(dataItem -> {
+                        Validate.isTrue(csvData.size() > dataItem.getRow(), String.format("Bad constraint data row index '%d'. Provided source file has less rows.", dataItem.getRow()));
 
-                Validate.isTrue(rowData.length > dataItem.getColumn(), String.format("Bad constraint data column index %d", dataItem.getRow()));
-                return Pair.of(FieldFormat.STRING, rowData[dataItem.getColumn()]);
-            }).collect(Collectors.toList());
+                        String[] rowData = csvData.get(dataItem.getRow());
+                        Validate.isTrue(rowData.length > dataItem.getColumn(), String.format("Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getRow()));
+
+                        return new CellItem(CellFormat.STRING, rowData[dataItem.getColumn()], dataItem);
+
+                    }).
+                    collect(Collectors.toList());
         } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid CSV file format.", e);
+            throw new IllegalArgumentException("Invalid CSV source file format.", e);
         }
     }
 
     @Override
-    public List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> readSourceData(List<RuleValues> values, byte[] source) {
+    public List<CellItem> readSourceData(List<RuleValues> values, byte[] source) {
         CSVReader csvReader = getCsvReader(source);
 
         try {
-            return internalReadData(values, toFiledTypeList(csvReader.readAll()));
+            List<String[]> csvData = csvReader.readAll();
+
+            return values.stream().
+                    flatMap(ruleValue -> {
+                        DataItem startData = ruleValue.getStart();
+                        Validate.isTrue(csvData.size() > startData.getRow(), String.format("Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow()));
+
+                        AtomicInteger index = new AtomicInteger(startData.getRow());
+
+                        return csvData.subList(startData.getRow(), csvData.size()).
+                                stream().
+                                map(rowData -> {
+                                    Validate.isTrue(rowData.length > startData.getColumn(), String.format("Bad copy data start column index '%d'. Provided source file has less columns.", startData.getRow()));
+
+                                    return new CellItem(CellFormat.STRING, rowData[startData.getColumn()], new DataItem(index.getAndIncrement(), startData.getColumn()));
+                                }).
+                                collect(Collectors.toList()).
+                                stream();
+                    }).
+                    collect(Collectors.toList());
         } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid CSV file format.", e);
+            throw new IllegalArgumentException("Invalid CSV source file format.", e);
         }
     }
 
-    private List<List<Pair<FieldFormat, Object>>> toFiledTypeList(List<String[]> values) {
-        return values.stream().
-                map(row -> Stream.of(row).
-                        map(cell -> Pair.of(FieldFormat.STRING, Object.class.cast(cell))).
-                        collect(Collectors.toList())).
-                collect(Collectors.toList());
-    }
-
     @Override
-    public byte[] pasteReadData(List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> readData, byte[] destination) {
+    public byte[] writeSourceData(List<CellItem> readSourceData, byte[] destination) {
         CSVReader csvReader = getCsvReader(destination);
 
         try {
             List<String[]> csvData = csvReader.readAll();
 
-            readData.forEach(dataItemListPair -> {
-                DataItem dataItem = dataItemListPair.getKey();
-                Validate.isTrue(csvData.size() > dataItem.getRow(), String.format("Bad source data column row %d", dataItem.getRow()));
+            readSourceData.forEach(cellItem -> {
+                DataItem cellCoordinate = cellItem.getCoordinate();
 
-                for (int rowIndex = dataItem.getRow(); rowIndex < csvData.size(); rowIndex++) {
-                    String[] rowData = csvData.get(rowIndex);
-                    Validate.isTrue(rowData.length > dataItem.getColumn(), String.format("Bad source data column index %d", dataItem.getRow()));
-                    rowData[dataItem.getColumn()] = String.valueOf(dataItemListPair.getValue().get(rowIndex - dataItem.getRow()).getValue());
+                if (shouldExtendRows(csvData, cellCoordinate)) {
+                    extendRows(csvData, cellCoordinate);
                 }
+
+                String[] rowData = csvData.get(cellCoordinate.getRow());
+
+                if (shouldExtendColumns(cellCoordinate, rowData)) {
+                    rowData = Arrays.copyOf(rowData, cellCoordinate.getColumn() + 1);
+                }
+
+                rowData[cellCoordinate.getColumn()] = cellItem.getValue().orElse(StringUtils.EMPTY).toString();
+                csvData.set(cellCoordinate.getRow(), rowData);
             });
 
             ByteArrayOutputStream result = new ByteArrayOutputStream();
@@ -86,8 +110,21 @@ class CsvFileManager extends FileManager {
 
             return result.toByteArray();
         } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid CSV file format.", e);
+            throw new IllegalArgumentException("Invalid CSV destination file format.", e);
         }
+    }
+
+    private void extendRows(List<String[]> csvData, DataItem cellCoordinate) {
+        IntStream.range(0, cellCoordinate.getRow() - csvData.size()+1).
+                forEach(value -> csvData.add(new String[cellCoordinate.getColumn()]));
+    }
+
+    private boolean shouldExtendColumns(DataItem cellCoordinate, String[] rowData) {
+        return rowData.length <= cellCoordinate.getColumn();
+    }
+
+    private boolean shouldExtendRows(List<String[]> csvData, DataItem cellCoordinate) {
+        return csvData.size() <= cellCoordinate.getRow();
     }
 
     private CSVReader getCsvReader(byte[] source) {
