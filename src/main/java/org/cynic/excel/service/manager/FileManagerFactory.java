@@ -6,6 +6,8 @@ import org.cynic.excel.service.manager.excel.XlsxFileManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.Locale;
+
 @Component
 public class FileManagerFactory {
     private final char csvSeparator;
@@ -24,7 +26,7 @@ public class FileManagerFactory {
                 return new XlsxFileManager();
             default:
                 throw new IllegalArgumentException(
-                        String.format("Unknown file format: %s", fileFormat.name())
+                        String.format(Locale.getDefault(), "Unknown file format: %s", fileFormat.name())
                 );
         }
     }

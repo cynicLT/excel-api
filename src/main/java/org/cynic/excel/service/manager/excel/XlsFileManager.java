@@ -13,6 +13,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -26,11 +27,11 @@ public class XlsFileManager extends AbstractExcelFileManager {
 
             return rules.parallelStream().
                     map(dataItem -> {
-                        Validate.isTrue(hssfSheet.getPhysicalNumberOfRows() > dataItem.getRow(), String.format("Bad constraint data row index '%d'. Provided source file has less rows.", dataItem.getRow()));
+                        Validate.isTrue(hssfSheet.getPhysicalNumberOfRows() > dataItem.getRow(), String.format(Locale.getDefault(), "Bad constraint data row index '%d'. Provided source file has less rows.", dataItem.getRow()));
                         HSSFRow hssfRow = hssfSheet.getRow(dataItem.getRow());
 
-                        Validate.isTrue(hssfRow.getPhysicalNumberOfCells() > dataItem.getColumn(), String.format("Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getRow()));
-                        HSSFCell hssfCell = hssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                        Validate.isTrue(hssfRow.getPhysicalNumberOfCells() > dataItem.getColumn(), String.format(Locale.getDefault(), "Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getColumn()));
+                        HSSFCell hssfCell = hssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
                         CellFormat cellFormat = getCellFormat(hssfCell);
 
@@ -51,7 +52,7 @@ public class XlsFileManager extends AbstractExcelFileManager {
             return values.stream().
                     flatMap(ruleValue -> {
                         DataItem startData = ruleValue.getStart();
-                        Validate.isTrue(hssfSheet.getPhysicalNumberOfRows() > startData.getRow(), String.format("Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow()));
+                        Validate.isTrue(hssfSheet.getPhysicalNumberOfRows() > startData.getRow(), String.format(Locale.getDefault(), "Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow()));
 
                         List<Row> rows = IteratorUtils.toList(hssfSheet.rowIterator());
                         AtomicInteger index = new AtomicInteger(startData.getRow());
@@ -60,7 +61,7 @@ public class XlsFileManager extends AbstractExcelFileManager {
                                 stream().
                                 map(row -> {
                                     HSSFRow hssfRow = HSSFRow.class.cast(row);
-                                    Validate.isTrue(hssfRow.getPhysicalNumberOfCells() > startData.getColumn(), String.format("Bad copy data start column index '%d'. Provided source file has less columns.", startData.getRow()));
+                                    Validate.isTrue(hssfRow.getPhysicalNumberOfCells() > startData.getColumn(), String.format(Locale.getDefault(), "Bad copy data start column index '%d'. Provided source file has less columns.", startData.getColumn()));
 
                                     HSSFCell hssfCell = hssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
                                     CellFormat cellFormat = getCellFormat(hssfCell);
@@ -89,9 +90,7 @@ public class XlsFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> hssfSheet.createRow(cellCoordinate.getRow()));
                 HSSFCell hssfCell = hssfRow.getCell(cellCoordinate.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                cellItem.getValue().ifPresent(value -> {
-                    setCellValue(hssfCell, cellItem.getCellFormat(), value);
-                });
+                cellItem.getValue().ifPresent(value -> setCellValue(hssfCell, cellItem.getCellFormat(), value));
             });
 
             HSSFFormulaEvaluator.evaluateAllFormulaCells(hssfWorkbook);

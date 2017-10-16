@@ -12,8 +12,10 @@ import org.cynic.excel.data.config.DataItem;
 import org.cynic.excel.data.config.RuleValues;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -35,10 +37,10 @@ class CsvFileManager implements FileManager {
 
             return items.parallelStream().
                     map(dataItem -> {
-                        Validate.isTrue(csvData.size() > dataItem.getRow(), String.format("Bad constraint data row index '%d'. Provided source file has less rows.", dataItem.getRow()));
+                        Validate.isTrue(csvData.size() > dataItem.getRow(), String.format(Locale.getDefault(), "Bad constraint data row index '%d'. Provided source file has less rows.", dataItem.getRow()));
 
                         String[] rowData = csvData.get(dataItem.getRow());
-                        Validate.isTrue(rowData.length > dataItem.getColumn(), String.format("Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getRow()));
+                        Validate.isTrue(rowData.length > dataItem.getColumn(), String.format(Locale.getDefault(), "Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getRow()));
 
                         return new CellItem(CellFormat.STRING, rowData[dataItem.getColumn()], dataItem);
 
@@ -59,14 +61,14 @@ class CsvFileManager implements FileManager {
             return values.stream().
                     flatMap(ruleValue -> {
                         DataItem startData = ruleValue.getStart();
-                        Validate.isTrue(csvData.size() > startData.getRow(), String.format("Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow()));
+                        Validate.isTrue(csvData.size() > startData.getRow(), String.format(Locale.getDefault(), "Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow()));
 
                         AtomicInteger index = new AtomicInteger(startData.getRow());
 
                         return csvData.subList(startData.getRow(), csvData.size()).
                                 stream().
                                 map(rowData -> {
-                                    Validate.isTrue(rowData.length > startData.getColumn(), String.format("Bad copy data start column index '%d'. Provided source file has less columns.", startData.getRow()));
+                                    Validate.isTrue(rowData.length > startData.getColumn(), String.format(Locale.getDefault(), "Bad copy data start column index '%d'. Provided source file has less columns.", startData.getRow()));
 
                                     return new CellItem(CellFormat.STRING, rowData[startData.getColumn()], new DataItem(index.getAndIncrement(), startData.getColumn()));
                                 }).
@@ -104,7 +106,7 @@ class CsvFileManager implements FileManager {
             });
 
             ByteArrayOutputStream result = new ByteArrayOutputStream();
-            CSVWriter csvWriter = new CSVWriter(new OutputStreamWriter(result));
+            CSVWriter csvWriter = new CSVWriter(new OutputStreamWriter(result, Charset.defaultCharset()));
             csvWriter.writeAll(csvData);
             csvWriter.flush();
 
@@ -115,7 +117,7 @@ class CsvFileManager implements FileManager {
     }
 
     private void extendRows(List<String[]> csvData, DataItem cellCoordinate) {
-        IntStream.range(0, cellCoordinate.getRow() - csvData.size()+1).
+        IntStream.range(0, cellCoordinate.getRow() - csvData.size() + 1).
                 forEach(value -> csvData.add(new String[cellCoordinate.getColumn()]));
     }
 
@@ -128,7 +130,10 @@ class CsvFileManager implements FileManager {
     }
 
     private CSVReader getCsvReader(byte[] source) {
-        return new CSVReaderBuilder(new InputStreamReader(new ByteArrayInputStream(source))).withCSVParser(
+        return new CSVReaderBuilder(new InputStreamReader(
+                new ByteArrayInputStream(source),
+                Charset.defaultCharset()
+        )).withCSVParser(
                 new CSVParserBuilder().
                         withSeparator(csvSeparator).
                         build()).

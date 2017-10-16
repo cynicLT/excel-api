@@ -6,6 +6,7 @@ import com.google.api.client.http.AbstractInputStreamContent;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.services.drive.Drive;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
@@ -28,12 +29,10 @@ import javax.script.ScriptException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -81,7 +80,7 @@ public class ExcelService {
                             FileFormat.XLSX;
         } else {
             throw new IllegalArgumentException(
-                    String.format("File '%s' type '%s' is not supported. Supported types are: '%s'", fileData.getKey(), mimeType, ALLOWED_MIME_TYPES)
+                    String.format(Locale.getDefault(), "File '%s' type '%s' is not supported. Supported types are: '%s'", fileData.getKey(), mimeType, ALLOWED_MIME_TYPES)
             );
         }
     }
@@ -98,11 +97,11 @@ public class ExcelService {
                 writeSourceData(sourceData, destinationFileData.getRight());
 
         return Pair.of(
-                String.format(
+                String.format(Locale.getDefault(),
                         "%s-%s.%s",
                         ruleConfiguration.getName(),
-                        LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                        destinationFileData.getKey().name().toLowerCase()
+                        LocalDateTime.now(Clock.systemDefaultZone()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                        StringUtils.lowerCase(destinationFileData.getKey().name())
                 ),
                 mergedFile
         );
@@ -151,7 +150,7 @@ public class ExcelService {
                 orElseThrow(() -> new IllegalArgumentException("Unable to find scripting engine 'nashorn'. Check if JDK is 8"));
 
         try {
-            scriptEngine.eval(String.format("function checkConstraint(data){ %s }", expression));
+            scriptEngine.eval(String.format(Locale.getDefault(), "function checkConstraint(data){ %s }", expression));
 
             return Boolean.class.cast(Invocable.class.cast(scriptEngine).invokeFunction("checkConstraint", data));
         } catch (ScriptException | NoSuchMethodException e) {

@@ -40,7 +40,7 @@ google:
 
 
 rules:
-  - name: 'CSV transofmration'
+  - name: 'BTE'
     constraint:
       data:
         - row: 1
@@ -51,7 +51,7 @@ rules:
         return parseInt(data[0]) + parseInt(data[1]) == 2;
     values:
       - start:
-          row: 5
+          row: 1
           column: 2
       - start:
           row: 3

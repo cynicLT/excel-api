@@ -22,6 +22,7 @@ import org.springframework.boot.web.servlet.ErrorPage;
 import org.springframework.context.annotation.Bean;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 
@@ -40,7 +41,7 @@ public class Configuration {
                                       @Value("${google.api.client_token_store}") String googleAuthTicketStorePath,
                                       JsonFactory jsonFactory) {
         try {
-            try (Reader reader = new InputStreamReader(new FileInputStream(googleApiClientIdPath))) {
+            try (Reader reader = new InputStreamReader(new FileInputStream(googleApiClientIdPath), Charset.defaultCharset())) {
                 GoogleClientSecrets googleClientSecrets = GoogleClientSecrets.load(jsonFactory, reader);
                 GoogleAuthorizationCodeFlow googleAuthorizationCodeFlow = new GoogleAuthorizationCodeFlow.Builder(
                         GoogleNetHttpTransport.newTrustedTransport(),

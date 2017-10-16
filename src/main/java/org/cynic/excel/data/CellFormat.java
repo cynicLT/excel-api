@@ -5,5 +5,5 @@ public enum CellFormat {
     STRING,
     FORMULA,
     BOOLEAN,
-    DATE;
+    DATE
 }

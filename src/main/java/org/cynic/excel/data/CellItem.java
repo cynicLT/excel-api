@@ -5,9 +5,9 @@ import org.cynic.excel.data.config.DataItem;
 import java.util.Optional;
 
 public class CellItem {
-    private CellFormat cellFormat;
-    private Object value;
-    private DataItem coordinate;
+    private final CellFormat cellFormat;
+    private final Object value;
+    private final DataItem coordinate;
 
     public CellItem(CellFormat cellFormat, Object value, DataItem coordinate) {
         this.cellFormat = cellFormat;

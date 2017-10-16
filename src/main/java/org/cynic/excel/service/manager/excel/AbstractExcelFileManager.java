@@ -27,21 +27,23 @@ abstract class AbstractExcelFileManager implements FileManager {
     }
 
     CellFormat getCellFormat(Cell cell) {
-        switch (cell.getCellTypeEnum()) {
-            case NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    return CellFormat.DATE;
-                } else if (BuiltinFormats.getBuiltinFormat("@") == cell.getCellStyle().getDataFormat()) {
+        if (BuiltinFormats.getBuiltinFormat("TEXT") != cell.getCellStyle().getDataFormat()) {
+            switch (cell.getCellTypeEnum()) {
+                case NUMERIC:
+                    if (DateUtil.isCellDateFormatted(cell)) {
+                        return CellFormat.DATE;
+                    } else {
+                        return CellFormat.NUMERIC;
+                    }
+                case BOOLEAN:
+                    return CellFormat.BOOLEAN;
+                case FORMULA:
+                    return CellFormat.FORMULA;
+                default:
                     return CellFormat.STRING;
-                } else {
-                    return CellFormat.NUMERIC;
-                }
-            case BOOLEAN:
-                return CellFormat.BOOLEAN;
-            case FORMULA:
-                return CellFormat.FORMULA;
-            default:
-                return CellFormat.STRING;
+            }
+        } else {
+            return CellFormat.STRING;
         }
     }
 
