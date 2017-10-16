@@ -2,6 +2,8 @@ package org.cynic.excel.service;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.AbstractInputStreamContent;
+import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.services.drive.Drive;
 import org.apache.commons.lang3.tuple.Pair;
@@ -24,7 +26,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.io.ByteArrayInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
@@ -107,36 +108,24 @@ public class ExcelService {
         );
     }
 
-
     public void saveFile(Pair<String, byte[]> mergedFileData) {
         LOGGER.info("saveFile({})", mergedFileData);
-        try {
-            FileOutputStream d = new FileOutputStream("result.xlsx");
-            d.write(mergedFileData.getRight());
-            d.flush();
-            d.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-//
-//
-//
-//        Drive drive = connectToDrive(credential);
-//
-//        try {
-//            AbstractInputStreamContent inputStreamContent = new ByteArrayContent(detectContentType(mergedFileData), mergedFileData.getValue());
-//            drive.files().
-//                    create(new com.google.api.services.drive.model.File().
-//                                    setName(mergedFileData.getKey()),
-//                            inputStreamContent
-//                    ).
-//                    setFields("id").
-//                    execute();
-//        } catch (IOException e) {
-//            throw new IllegalArgumentException("Unable to upload file to Google Drive", e);
-//        }
-    }
 
+        Drive drive = connectToDrive(credential);
+
+        try {
+            AbstractInputStreamContent inputStreamContent = new ByteArrayContent(detectContentType(mergedFileData), mergedFileData.getValue());
+            drive.files().
+                    create(new com.google.api.services.drive.model.File().
+                                    setName(mergedFileData.getKey()),
+                            inputStreamContent
+                    ).
+                    setFields("id").
+                    execute();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Unable to upload file to Google Drive", e);
+        }
+    }
 
     private RuleConfiguration getSourceConfiguration(Pair<FileFormat, byte[]> sourceFileData) {
         return rulesConfiguration.
