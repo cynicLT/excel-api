@@ -1,7 +1,7 @@
 package org.cynic.excel.service.manager.excel;
 
+import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.cynic.excel.data.CellFormat;
 import org.cynic.excel.service.manager.FileManager;
@@ -31,6 +31,8 @@ abstract class AbstractExcelFileManager implements FileManager {
             case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell)) {
                     return CellFormat.DATE;
+                } else if (BuiltinFormats.getBuiltinFormat("@") == cell.getCellStyle().getDataFormat()) {
+                    return CellFormat.STRING;
                 } else {
                     return CellFormat.NUMERIC;
                 }
@@ -40,26 +42,6 @@ abstract class AbstractExcelFileManager implements FileManager {
                 return CellFormat.FORMULA;
             default:
                 return CellFormat.STRING;
-        }
-    }
-
-    void setCellFormat(Cell cell, CellFormat cellFormat) {
-        switch (cellFormat) {
-            case DATE:
-                cell.setCellType(CellType.NUMERIC);
-                cell.getCellStyle().setDataFormat((short) 14);
-                break;
-            case BOOLEAN:
-                cell.setCellType(CellType.BOOLEAN);
-                break;
-            case FORMULA:
-                cell.setCellType(CellType.FORMULA);
-                break;
-            case NUMERIC:
-                cell.setCellType(CellType.NUMERIC);
-                break;
-            default:
-                cell.setCellType(CellType.STRING);
         }
     }
 
