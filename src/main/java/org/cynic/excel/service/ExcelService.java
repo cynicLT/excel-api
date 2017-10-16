@@ -2,22 +2,17 @@ package org.cynic.excel.service;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.AbstractInputStreamContent;
-import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.services.drive.Drive;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.util.IOUtils;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.metadata.Metadata;
-import org.cynic.excel.config.DataItem;
-import org.cynic.excel.config.RuleConfiguration;
-import org.cynic.excel.config.RulesConfiguration;
-import org.cynic.excel.data.FieldFormat;
+import org.cynic.excel.data.CellItem;
 import org.cynic.excel.data.FileFormat;
-import org.cynic.excel.service.manager.FileManager;
+import org.cynic.excel.data.config.DataItem;
+import org.cynic.excel.data.config.RuleConfiguration;
+import org.cynic.excel.data.config.RulesConfiguration;
 import org.cynic.excel.service.manager.FileManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +32,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -73,6 +69,7 @@ public class ExcelService {
     }
 
     public FileFormat getFileFormat(Pair<String, byte[]> fileData) {
+        LOGGER.info("getFileFormat({})", fileData);
         String mimeType = detectContentType(fileData);
 
         if (ALLOWED_MIME_TYPES.contains(mimeType)) {
@@ -91,27 +88,30 @@ public class ExcelService {
     public Pair<String, byte[]> mergeFiles(Pair<FileFormat, byte[]> sourceFileData, Pair<FileFormat, byte[]> destinationFileData) {
         LOGGER.info("mergeFiles({},{})", sourceFileData, destinationFileData);
 
-        RuleConfiguration ruleConfiguration = rulesConfiguration.
-                getRules().
-                stream().
-                filter(rule -> {
-                    List<Pair<FieldFormat, ?>> data = readDataFromFile(sourceFileData, rule.getConstraint().getData());
+        RuleConfiguration ruleConfiguration = getSourceConfiguration(sourceFileData);
 
-                    return evaluateExpression(
-                            rule.getConstraint().getExpression(),
-                            data.stream().map(Pair::getValue).collect(Collectors.toList())
-                    );
-                }).
-                findFirst().
-                orElseThrow(() -> new IllegalArgumentException("Unable to find mapping rules to provided source file"));
+        List<CellItem> sourceData = fileManagerFactory.getFileManager(sourceFileData.getKey()).
+                readSourceData(ruleConfiguration.getValues(), sourceFileData.getValue());
 
-        return copyData(ruleConfiguration, sourceFileData, destinationFileData);
+        byte[] mergedFile = fileManagerFactory.getFileManager(destinationFileData.getKey()).
+                writeSourceData(sourceData, destinationFileData.getRight());
+
+        return Pair.of(
+                String.format(
+                        "%s-%s.%s",
+                        ruleConfiguration.getName(),
+                        LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                        destinationFileData.getKey().name().toLowerCase()
+                ),
+                mergedFile
+        );
     }
+
 
     public void saveFile(Pair<String, byte[]> mergedFileData) {
         LOGGER.info("saveFile({})", mergedFileData);
         try {
-            FileOutputStream d =     new FileOutputStream("result.xlsx");
+            FileOutputStream d = new FileOutputStream("result.xlsx");
             d.write(mergedFileData.getRight());
             d.flush();
             d.close();
@@ -137,24 +137,29 @@ public class ExcelService {
 //        }
     }
 
-    private Pair<String, byte[]> copyData(RuleConfiguration ruleConfiguration, Pair<FileFormat, byte[]> sourceFileData, Pair<FileFormat, byte[]> destinationFileData) {
-        List<Pair<DataItem, List<Pair<FieldFormat, ?>>>> sourceData = fileManagerFactory.getFileManager(sourceFileData.getKey()).
-                readSourceData(ruleConfiguration.getValues(), sourceFileData.getValue());
 
-        return Pair.of(
-                String.format(
-                        "%s-%s.%s",
-                        ruleConfiguration.getName(),
-                        LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                        destinationFileData.getKey().name().toLowerCase()
-                ),
-                fileManagerFactory.getFileManager(destinationFileData.getKey()).
-                        pasteReadData(sourceData, destinationFileData.getRight())
-        );
+    private RuleConfiguration getSourceConfiguration(Pair<FileFormat, byte[]> sourceFileData) {
+        return rulesConfiguration.
+                getRules().
+                stream().
+                filter(rule -> {
+                    List<CellItem> constraintData = readDataFromFile(sourceFileData, rule.getConstraint().getData());
+
+                    return evaluateExpression(
+                            rule.getConstraint().getExpression(),
+                            constraintData.stream().
+                                    map(cellItem -> cellItem.getValue().orElse(null)).
+                                    collect(Collectors.toList()
+                                    )
+                    );
+                }).
+                findFirst().
+                orElseThrow(() -> new IllegalArgumentException("Unable to find merging rule for provided source file."));
     }
 
     private boolean evaluateExpression(String expression, List<?> data) {
-        ScriptEngine scriptEngine = SCRIPT_ENGINE_MANAGER.getEngineByName("nashorn");
+        ScriptEngine scriptEngine = Optional.ofNullable(SCRIPT_ENGINE_MANAGER.getEngineByName("nashorn")).
+                orElseThrow(() -> new IllegalArgumentException("Unable to find scripting engine 'nashorn'. Check if JDK is 8"));
 
         try {
             scriptEngine.eval(String.format("function checkConstraint(data){ %s }", expression));
@@ -165,7 +170,7 @@ public class ExcelService {
         }
     }
 
-    private List<Pair<FieldFormat, ?>> readDataFromFile(Pair<FileFormat, byte[]> sourceFileData, List<DataItem> constraintData) {
+    private List<CellItem> readDataFromFile(Pair<FileFormat, byte[]> sourceFileData, List<DataItem> constraintData) {
         return fileManagerFactory.getFileManager(sourceFileData.getKey()).
                 readConstraintValues(constraintData, sourceFileData.getValue());
     }

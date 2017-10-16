@@ -1,17 +1,17 @@
 package org.cynic.excel.service.manager.excel;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.poi.ss.usermodel.Cell;
-import org.cynic.excel.data.FieldFormat;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.cynic.excel.data.CellFormat;
 import org.cynic.excel.service.manager.FileManager;
 
 import java.util.Date;
 import java.util.Objects;
 
-abstract class AbstractExcelFileManager extends FileManager {
+abstract class AbstractExcelFileManager implements FileManager {
 
-    Object toFieldValue(FieldFormat cellType, Cell cell) {
+    Object getCellValue(CellFormat cellType, Cell cell) {
         switch (cellType) {
             case FORMULA:
                 return cell.getCellFormula();
@@ -26,66 +26,75 @@ abstract class AbstractExcelFileManager extends FileManager {
         }
     }
 
-    FieldFormat getFieldFormat(Cell cell) {
+    CellFormat getCellFormat(Cell cell) {
         switch (cell.getCellTypeEnum()) {
             case NUMERIC:
-                if (!Objects.isNull(cell.getCellStyle().getDataFormatString())) {
-                    return FieldFormat.DATE;
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return CellFormat.DATE;
                 } else {
-                    return FieldFormat.NUMERIC;
+                    return CellFormat.NUMERIC;
                 }
             case BOOLEAN:
-                return FieldFormat.BOOLEAN;
+                return CellFormat.BOOLEAN;
             case FORMULA:
-                return FieldFormat.FORMULA;
-            case BLANK:
-                if (!Objects.isNull(cell.getCellStyle().getDataFormatString())) {
-                    return FieldFormat.DATE;
-                } else {
-                    return FieldFormat.STRING;
-                }
+                return CellFormat.FORMULA;
             default:
-                return FieldFormat.STRING;
+                return CellFormat.STRING;
         }
     }
 
-    void setCellValue(Cell hssfCell, Pair<FieldFormat, ?> fieldTypePair) {
-        if (!Objects.isNull(fieldTypePair.getValue())) {
-            switch (getFieldFormat(hssfCell)) {
-                case NUMERIC:
-                    hssfCell.setCellValue(toNumberValue(fieldTypePair));
-                    break;
-                case DATE:
-                    hssfCell.setCellValue(toDateValue(fieldTypePair));
-                    break;
-                case BOOLEAN:
-                    hssfCell.setCellValue(toBooleanValue(fieldTypePair));
-                    break;
-                case FORMULA:
-                    hssfCell.setCellFormula(toStringValue(fieldTypePair));
-                    break;
-                default:
-                    hssfCell.setCellValue(toStringValue(fieldTypePair));
-            }
-        } else {
-            hssfCell.setCellValue(toStringValue(fieldTypePair));
+    void setCellFormat(Cell cell, CellFormat cellFormat) {
+        switch (cellFormat) {
+            case DATE:
+                cell.setCellType(CellType.NUMERIC);
+                cell.getCellStyle().setDataFormat((short) 14);
+                break;
+            case BOOLEAN:
+                cell.setCellType(CellType.BOOLEAN);
+                break;
+            case FORMULA:
+                cell.setCellType(CellType.FORMULA);
+                break;
+            case NUMERIC:
+                cell.setCellType(CellType.NUMERIC);
+                break;
+            default:
+                cell.setCellType(CellType.STRING);
         }
     }
 
-    private Date toDateValue(Pair<FieldFormat, ?> fieldTypePair) {
-        return Date.class.cast(fieldTypePair.getValue());
+    void setCellValue(Cell cell, CellFormat cellFormat, Object cellValue) {
+        switch (cellFormat) {
+            case NUMERIC:
+                cell.setCellValue(toNumberValue(cellValue));
+                break;
+            case DATE:
+                cell.setCellValue(toDateValue(cellValue));
+                break;
+            case BOOLEAN:
+                cell.setCellValue(toBooleanValue(cellValue));
+                break;
+            case FORMULA:
+                cell.setCellFormula(toStringValue(cellValue));
+                break;
+            default:
+                cell.setCellValue(toStringValue(cellValue));
+        }
     }
 
-    private String toStringValue(Pair<FieldFormat, ?> fieldTypePair) {
-        return Objects.toString(fieldTypePair.getValue(), StringUtils.EMPTY);
+    private Date toDateValue(Object cellValue) {
+        return new Date(Double.class.cast(cellValue).longValue());
     }
 
-    private Boolean toBooleanValue(Pair<FieldFormat, ?> fieldTypePair) {
-        return Boolean.class.cast(fieldTypePair.getValue());
+    private String toStringValue(Object cellValue) {
+        return Objects.toString(cellValue);
     }
 
-    private Double toNumberValue(Pair<FieldFormat, ?> fieldTypePair) {
-        return Double.class.cast(fieldTypePair.getValue());
+    private Boolean toBooleanValue(Object cellValue) {
+        return Boolean.class.cast(cellValue);
+    }
 
+    private Double toNumberValue(Object cellValue) {
+        return Double.class.cast(cellValue);
     }
 }
