@@ -13,6 +13,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -26,10 +27,10 @@ public class XlsxFileManager extends AbstractExcelFileManager {
 
             return rules.parallelStream().
                     map(dataItem -> {
-                        Validate.isTrue(xssfSheet.getPhysicalNumberOfRows() > dataItem.getRow(), String.format("Bad constraint data row index '%d'. Provided source file has less rows.", dataItem.getRow()));
+                        Validate.isTrue(xssfSheet.getPhysicalNumberOfRows() > dataItem.getRow(), String.format(Locale.getDefault(), "Bad constraint data row index '%d'. Provided source file has less rows.", dataItem.getRow()));
                         XSSFRow xssfRow = xssfSheet.getRow(dataItem.getRow());
 
-                        Validate.isTrue(xssfRow.getPhysicalNumberOfCells() > dataItem.getColumn(), String.format("Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getRow()));
+                        Validate.isTrue(xssfRow.getPhysicalNumberOfCells() > dataItem.getColumn(), String.format(Locale.getDefault(), "Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getColumn()));
                         XSSFCell xssfCell = xssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
 
                         CellFormat cellFormat = getCellFormat(xssfCell);
@@ -51,7 +52,10 @@ public class XlsxFileManager extends AbstractExcelFileManager {
             return values.stream().
                     flatMap(ruleValue -> {
                         DataItem startData = ruleValue.getStart();
-                        Validate.isTrue(xssfSheet.getPhysicalNumberOfRows() > startData.getRow(), String.format("Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow()));
+                        Validate.isTrue(
+                                xssfSheet.getPhysicalNumberOfRows() > startData.getRow(),
+                                String.format(Locale.getDefault(), "Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow())
+                        );
 
                         List<Row> rows = IteratorUtils.toList(xssfSheet.rowIterator());
                         AtomicInteger index = new AtomicInteger(startData.getRow());
@@ -60,9 +64,13 @@ public class XlsxFileManager extends AbstractExcelFileManager {
                                 stream().
                                 map(row -> {
                                     XSSFRow xssfRow = XSSFRow.class.cast(row);
-                                    Validate.isTrue(xssfRow.getPhysicalNumberOfCells() > startData.getColumn(), String.format("Bad copy data start column index '%d'. Provided source file has less columns.", startData.getRow()));
+                                    Validate.isTrue(
+                                            xssfRow.getPhysicalNumberOfCells() > startData.getColumn(),
+                                            String.format(Locale.getDefault(), "Bad copy data start column index '%d'. Provided source file has less columns.",
+                                                    startData.getColumn())
+                                    );
 
-                                    XSSFCell xssfCell = xssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                                    XSSFCell xssfCell = xssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                     CellFormat cellFormat = getCellFormat(xssfCell);
 
                                     return new CellItem(cellFormat, getCellValue(cellFormat, xssfCell), new DataItem(index.getAndIncrement(), startData.getColumn()));
@@ -89,9 +97,7 @@ public class XlsxFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> xssfSheet.createRow(cellCoordinate.getRow()));
                 XSSFCell xssfCell = xssfRow.getCell(cellCoordinate.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                cellItem.getValue().ifPresent(value -> {
-                    setCellValue(xssfCell, cellItem.getCellFormat(), value);
-                });
+                cellItem.getValue().ifPresent(value -> setCellValue(xssfCell, cellItem.getCellFormat(), value));
             });
 
             XSSFFormulaEvaluator.evaluateAllFormulaCells(xssfWorkbook);
