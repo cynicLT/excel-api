@@ -57,30 +57,42 @@ google:
 Mapping configuration is defined in specific structure to make dynamic configuration;
 ```yaml
 rules:
-  - name: 'Quantity Buy Sheet Found'             # name of the rule
+  - name: 'Town Pump'   # name of the rule
     constraint:
-      data:                                      # data to be used to validate constraint rule
-        - row: 6
-          column: 1
-        - row: 0
-          column: 11
-      expression: |                              # constraint expression in JS language (data parameter is passed to make validations)
-        console.log("JS can be used in Java and will be called with parameters from data[]");
-        return true;
-    values:                                      # values to be copied from source file
-      - start:
-          row: 21
+      data:
+        - row: 0        # A1
           column: 0
-        end:
-          row: 50                                # optional (may be NULL)
-      - start:
-          row: 21
-          column: 4
-        end:
-          row: 50
+        - row: 0        #F1
+          column: 5     
+        - row: 0        #H1
+          column: 7
+        - row: 0        #M1
+          column: 12  
+      expression: |
+        return data[0] =='VIN' && data[1] == 'Item UPC' && data[2] == 'Current Everyday Cost' && data[3] == 'Promo Cost'
+    values:
+      - start:        #I1
+          row: 1
+          column: 8
+      - start:        #J
+          row: 1      
+          column: 9
+      - start:        #K
+          row: 1
+          column: 10
+      - start:        #L
+          row: 1
+          column: 11
+      - start:        #M
+          row: 1
+          column: 12
+      - start:        #N
+          row: 1
+          column: 13
 ...
 ... 
 ```
+This rule states that
 
 ###File readers
 

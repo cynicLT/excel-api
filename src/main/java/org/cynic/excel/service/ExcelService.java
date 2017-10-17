@@ -27,6 +27,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.Clock;
@@ -109,21 +110,29 @@ public class ExcelService {
 
     public void saveFile(Pair<String, byte[]> mergedFileData) {
         LOGGER.info("saveFile({})", mergedFileData);
-
-        Drive drive = connectToDrive(credential);
-
         try {
-            AbstractInputStreamContent inputStreamContent = new ByteArrayContent(detectContentType(mergedFileData), mergedFileData.getValue());
-            drive.files().
-                    create(new com.google.api.services.drive.model.File().
-                                    setName(mergedFileData.getKey()),
-                            inputStreamContent
-                    ).
-                    setFields("id").
-                    execute();
+            FileOutputStream d = new FileOutputStream("result.xlsx");
+            d.write(mergedFileData.getRight());
+            d.flush();
+            d.close();
         } catch (IOException e) {
-            throw new IllegalArgumentException("Unable to upload file to Google Drive", e);
+            e.printStackTrace();
         }
+//
+//        Drive drive = connectToDrive(credential);
+//
+//        try {
+//            AbstractInputStreamContent inputStreamContent = new ByteArrayContent(detectContentType(mergedFileData), mergedFileData.getValue());
+//            drive.files().
+//                    create(new com.google.api.services.drive.model.File().
+//                                    setName(mergedFileData.getKey()),
+//                            inputStreamContent
+//                    ).
+//                    setFields("id").
+//                    execute();
+//        } catch (IOException e) {
+//            throw new IllegalArgumentException("Unable to upload file to Google Drive", e);
+//        }
     }
 
     private RuleConfiguration getSourceConfiguration(Pair<FileFormat, byte[]> sourceFileData) {

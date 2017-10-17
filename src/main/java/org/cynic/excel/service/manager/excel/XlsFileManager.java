@@ -3,6 +3,7 @@ package org.cynic.excel.service.manager.excel;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.cynic.excel.data.CellFormat;
 import org.cynic.excel.data.CellItem;
@@ -30,7 +31,7 @@ public class XlsFileManager extends AbstractExcelFileManager {
                         Validate.isTrue(hssfSheet.getPhysicalNumberOfRows() > dataItem.getRow(), String.format(Locale.getDefault(), "Bad constraint data row index '%d'. Provided source file has less rows.", dataItem.getRow()));
                         HSSFRow hssfRow = hssfSheet.getRow(dataItem.getRow());
 
-                        Validate.isTrue(hssfRow.getPhysicalNumberOfCells() > dataItem.getColumn(), String.format(Locale.getDefault(), "Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getColumn()));
+                        Validate.isTrue(hssfRow.getLastCellNum() > dataItem.getColumn(), String.format(Locale.getDefault(), "Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getColumn()));
                         HSSFCell hssfCell = hssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
                         CellFormat cellFormat = getCellFormat(hssfCell);
@@ -52,7 +53,7 @@ public class XlsFileManager extends AbstractExcelFileManager {
             return values.stream().
                     flatMap(ruleValue -> {
                         DataItem startData = ruleValue.getStart();
-                        Validate.isTrue(hssfSheet.getPhysicalNumberOfRows() > startData.getRow(), String.format(Locale.getDefault(), "Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow()));
+                        Validate.isTrue(hssfSheet.getLastRowNum() > startData.getRow(), String.format(Locale.getDefault(), "Bad copy start data row index '%d'. Provided source file has less rows.", startData.getRow()));
 
                         List<Row> rows = IteratorUtils.toList(hssfSheet.rowIterator());
                         AtomicInteger index = new AtomicInteger(startData.getRow());
@@ -61,12 +62,12 @@ public class XlsFileManager extends AbstractExcelFileManager {
                                 stream().
                                 map(row -> {
                                     HSSFRow hssfRow = HSSFRow.class.cast(row);
-                                    Validate.isTrue(hssfRow.getPhysicalNumberOfCells() > startData.getColumn(), String.format(Locale.getDefault(), "Bad copy data start column index '%d'. Provided source file has less columns.", startData.getColumn()));
+                                    Validate.isTrue(hssfRow.getLastCellNum() > startData.getColumn(), String.format(Locale.getDefault(), "Bad copy data start column index '%d'. Provided source file has less columns.", startData.getColumn()));
 
-                                    HSSFCell hssfCell = hssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                                    HSSFCell hssfCell = hssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                     CellFormat cellFormat = getCellFormat(hssfCell);
 
-                                    return new CellItem(cellFormat, getCellValue(cellFormat, hssfCell), new DataItem(index.getAndIncrement(), startData.getColumn()));
+                                    return new CellItem(cellFormat, getCellValue(cellFormat, hssfCell), new DataItem(index.getAndIncrement(), startData.getColumn()), hssfCell.getCellStyle().getDataFormatString());
                                 }).
                                 collect(Collectors.toList()).
                                 stream();
@@ -90,7 +91,18 @@ public class XlsFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> hssfSheet.createRow(cellCoordinate.getRow()));
                 HSSFCell hssfCell = hssfRow.getCell(cellCoordinate.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                cellItem.getValue().ifPresent(value -> setCellValue(hssfCell, cellItem.getCellFormat(), value));
+                if (CellType.BLANK.equals(hssfCell.getCellTypeEnum())) {
+                    cellItem.getFormat().ifPresent(format -> {
+                        setCellStyle(hssfCell, format);
+                    });
+                }
+
+                String destinationStyle = hssfCell.getCellStyle().getDataFormatString();
+
+                cellItem.getValue().ifPresent(value -> {
+                    setCellValue(hssfCell, cellItem.getCellFormat(), value);
+                    setCellStyle(hssfCell, destinationStyle);
+                });
             });
 
             HSSFFormulaEvaluator.evaluateAllFormulaCells(hssfWorkbook);
