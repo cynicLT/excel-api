@@ -40,22 +40,38 @@ google:
 
 
 rules:
-  - name: 'BTE'
+  - name: 'Town Pump'   # name of the rule
     constraint:
       data:
-        - row: 1
+        - row: 0
           column: 0
-        - row: 1
-          column: 1
+        - row: 0
+          column: 5
+        - row: 0
+          column: 7
+        - row: 0
+          column: 12
       expression: |
-        return parseInt(data[0]) + parseInt(data[1]) == 2;
+        return data[0] =='VIN' && data[1] == 'Item UPC' && data[2] == 'Current Everyday Cost' && data[3] == 'Promo Cost'
     values:
       - start:
           row: 1
-          column: 2
+          column: 8
       - start:
-          row: 3
-          column: 4
+          row: 1
+          column: 9
+      - start:
+          row: 1
+          column: 10
+      - start:
+          row: 1
+          column: 11
+      - start:
+          row: 1
+          column: 12
+      - start:
+          row: 1
+          column: 13
 csv:
   separator: ','
 ---

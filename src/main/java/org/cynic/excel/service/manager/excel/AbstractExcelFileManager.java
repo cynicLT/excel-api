@@ -2,7 +2,6 @@ package org.cynic.excel.service.manager.excel;
 
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DateUtil;
 import org.cynic.excel.data.CellFormat;
 import org.cynic.excel.service.manager.FileManager;
 
@@ -27,24 +26,26 @@ abstract class AbstractExcelFileManager implements FileManager {
     }
 
     CellFormat getCellFormat(Cell cell) {
-        if (BuiltinFormats.getBuiltinFormat("TEXT") != cell.getCellStyle().getDataFormat()) {
-            switch (cell.getCellTypeEnum()) {
-                case NUMERIC:
-                    if (DateUtil.isCellDateFormatted(cell)) {
-                        return CellFormat.DATE;
-                    } else {
-                        return CellFormat.NUMERIC;
-                    }
-                case BOOLEAN:
-                    return CellFormat.BOOLEAN;
-                case FORMULA:
-                    return CellFormat.FORMULA;
-                default:
-                    return CellFormat.STRING;
-            }
-        } else {
-            return CellFormat.STRING;
+        switch (cell.getCellTypeEnum()) {
+            case NUMERIC:
+                return CellFormat.NUMERIC;
+            case BOOLEAN:
+                return CellFormat.BOOLEAN;
+            case FORMULA:
+                return CellFormat.FORMULA;
+            default:
+                return CellFormat.STRING;
         }
+    }
+
+    void setCellStyle(Cell cell, String format) {
+        short index = (short) BuiltinFormats.getBuiltinFormat(format);
+
+        if (index == -1) {
+            index = cell.getRow().getSheet().getWorkbook().createDataFormat().getFormat(format);
+        }
+
+        cell.getCellStyle().setDataFormat(index);
     }
 
     void setCellValue(Cell cell, CellFormat cellFormat, Object cellValue) {
