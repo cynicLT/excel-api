@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 
 @RestController
@@ -23,24 +25,44 @@ public class ExcelController extends AbstractV1Controller {
     }
 
     @PostMapping("/merge-files")
-    public Callable<ResponseEntity> mergeFiles(@RequestParam("sourceFile") MultipartFile sourceFile,
-                                               @RequestParam("destinationFile") MultipartFile destinationFile) {
+    public Callable<ResponseEntity> mergeFilesGoogle(@RequestParam("sourceFile") MultipartFile sourceFile,
+                                                     @RequestParam("destinationFile") MultipartFile destinationFile) {
 
         return () -> {
-            Pair<FileFormat, byte[]> sourceFileData = Pair.of(
-                    excelService.getFileFormat(Pair.of(sourceFile.getOriginalFilename(), sourceFile.getBytes())),
-                    sourceFile.getBytes()
-            );
-
-            Pair<FileFormat, byte[]> destinationFileData = Pair.of(
-                    excelService.getFileFormat(Pair.of(destinationFile.getOriginalFilename(), destinationFile.getBytes())),
-                    destinationFile.getBytes()
-            );
-
-            Pair<String, byte[]> mergedFileData = excelService.mergeFiles(sourceFileData, destinationFileData);
+            Pair<String, byte[]> mergedFileData = mergeFiles(sourceFile, destinationFile);
             excelService.saveFile(mergedFileData);
 
             return ResponseEntity.noContent().build();
         };
+    }
+
+
+    @PostMapping("/merge-files-instant")
+    public Callable<ResponseEntity> mergeFilesInstant(@RequestParam("sourceFile") MultipartFile sourceFile,
+                                                      @RequestParam("destinationFile") MultipartFile destinationFile) {
+
+        return () -> {
+            Pair<String, byte[]> mergedFileData = mergeFiles(sourceFile, destinationFile);
+
+            return ResponseEntity.ok().
+                    header("Content-Disposition",
+                            String.format(Locale.getDefault(), "attachment; filename=\"%s\"", mergedFileData.getKey())
+                    ).
+                    body(mergedFileData.getValue());
+        };
+    }
+
+    private Pair<String, byte[]> mergeFiles(@RequestParam("sourceFile") MultipartFile sourceFile, @RequestParam("destinationFile") MultipartFile destinationFile) throws IOException {
+        Pair<FileFormat, byte[]> sourceFileData = Pair.of(
+                excelService.getFileFormat(Pair.of(sourceFile.getOriginalFilename(), sourceFile.getBytes())),
+                sourceFile.getBytes()
+        );
+
+        Pair<FileFormat, byte[]> destinationFileData = Pair.of(
+                excelService.getFileFormat(Pair.of(destinationFile.getOriginalFilename(), destinationFile.getBytes())),
+                destinationFile.getBytes()
+        );
+
+        return excelService.mergeFiles(sourceFileData, destinationFileData);
     }
 }
