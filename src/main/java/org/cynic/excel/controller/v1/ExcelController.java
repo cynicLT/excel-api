@@ -1,16 +1,23 @@
 package org.cynic.excel.controller.v1;
 
+import org.apache.commons.compress.archivers.ArchiveOutputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.cynic.excel.data.FileFormat;
 import org.cynic.excel.service.ExcelService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 
@@ -45,10 +52,15 @@ public class ExcelController extends AbstractV1Controller {
             Pair<String, byte[]> mergedFileData = mergeFiles(sourceFile, destinationFile);
 
             return ResponseEntity.ok().
+                    contentType(new MediaType("application", "zip")).
                     header("Content-Disposition",
-                            String.format(Locale.getDefault(), "attachment; filename=\"%s\"", mergedFileData.getKey())
+                            String.format(
+                                    Locale.getDefault(),
+                                    "attachment; filename=\"%s.zip\"",
+                                    StringUtils.substringBeforeLast(mergedFileData.getKey(), ".")
+                            )
                     ).
-                    body(mergedFileData.getValue());
+                    body(zipResponse(mergedFileData));
         };
     }
 
@@ -64,5 +76,23 @@ public class ExcelController extends AbstractV1Controller {
         );
 
         return excelService.mergeFiles(sourceFileData, destinationFileData);
+    }
+
+    private byte[] zipResponse(Pair<String, byte[]> mergedFileData) {
+        try {
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            ArchiveOutputStream archiveOutputStream = new ZipArchiveOutputStream(result);
+
+            ZipArchiveEntry entry = new ZipArchiveEntry(mergedFileData.getKey());
+            entry.setSize(Array.getLength(mergedFileData.getValue()));
+            archiveOutputStream.putArchiveEntry(entry);
+            archiveOutputStream.write(mergedFileData.getValue());
+            archiveOutputStream.closeArchiveEntry();
+            archiveOutputStream.close();
+
+            return result.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Unable to zip merged file", e);
+        }
     }
 }

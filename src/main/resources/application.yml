@@ -40,7 +40,7 @@ google:
 
 
 rules:
-  - name: 'Town Pump'   # name of the rule
+  - name: 'Town Pump'
     constraint:
       data:
         - row: 0
