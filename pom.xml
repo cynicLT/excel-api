@@ -30,6 +30,7 @@
         <google-api-services-drive.version>v3-rev85-1.23.0</google-api-services-drive.version>
         <tika.version>1.16</tika.version>
         <commons-lang3.version>3.6</commons-lang3.version>
+        <commons-compress.version>1.14</commons-compress.version>
         <opencsv.version>4.0</opencsv.version>
     </properties>
 
@@ -78,6 +79,12 @@
             <artifactId>commons-lang3</artifactId>
             <version>${commons-lang3.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>${commons-compress.version}</version>
+        </dependency>
+
 
         <!--CSV reader/writer-->
         <dependency>
