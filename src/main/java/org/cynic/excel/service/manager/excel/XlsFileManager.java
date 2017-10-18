@@ -1,9 +1,9 @@
 package org.cynic.excel.service.manager.excel;
 
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.poi.hssf.usermodel.*;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.cynic.excel.data.CellFormat;
 import org.cynic.excel.data.CellItem;
@@ -67,7 +67,11 @@ public class XlsFileManager extends AbstractExcelFileManager {
                                     HSSFCell hssfCell = hssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                     CellFormat cellFormat = getCellFormat(hssfCell);
 
-                                    return new CellItem(cellFormat, getCellValue(cellFormat, hssfCell), new DataItem(index.getAndIncrement(), startData.getColumn()), hssfCell.getCellStyle().getDataFormatString());
+                                    return new CellItem(cellFormat,
+                                            getCellValue(cellFormat, hssfCell),
+                                            new DataItem(index.getAndIncrement(), startData.getColumn()),
+                                            StringUtils.substringBefore(hssfCell.getCellStyle().getDataFormatString(), ";")
+                                    );
                                 }).
                                 collect(Collectors.toList()).
                                 stream();
@@ -91,17 +95,10 @@ public class XlsFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> hssfSheet.createRow(cellCoordinate.getRow()));
                 HSSFCell hssfCell = hssfRow.getCell(cellCoordinate.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                if (CellType.BLANK.equals(hssfCell.getCellTypeEnum())) {
-                    cellItem.getFormat().ifPresent(format -> {
-                        setCellStyle(hssfCell, format);
-                    });
-                }
-
-                String destinationStyle = hssfCell.getCellStyle().getDataFormatString();
-
                 cellItem.getValue().ifPresent(value -> {
+                    setCellType(hssfCell, cellItem.getCellFormat());
                     setCellValue(hssfCell, cellItem.getCellFormat(), value);
-                    setCellStyle(hssfCell, destinationStyle);
+                    setCellStyle(hssfCell, cellItem.getFormat().get());
                 });
             });
 

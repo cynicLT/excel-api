@@ -1,8 +1,9 @@
 package org.cynic.excel.service.manager.excel;
 
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
-import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.*;
 import org.cynic.excel.data.CellFormat;
@@ -74,7 +75,11 @@ public class XlsxFileManager extends AbstractExcelFileManager {
                                     XSSFCell xssfCell = xssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                                     CellFormat cellFormat = getCellFormat(xssfCell);
 
-                                    return new CellItem(cellFormat, getCellValue(cellFormat, xssfCell), new DataItem(index.getAndIncrement(), startData.getColumn()), xssfCell.getCellStyle().getDataFormatString());
+                                    return new CellItem(cellFormat,
+                                            getCellValue(cellFormat, xssfCell),
+                                            new DataItem(index.getAndIncrement(), startData.getColumn()),
+                                            StringUtils.substringBefore(xssfCell.getCellStyle().getDataFormatString(), ";")
+                                    );
                                 }).
                                 collect(Collectors.toList()).
                                 stream();
@@ -98,17 +103,11 @@ public class XlsxFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> xssfSheet.createRow(cellCoordinate.getRow()));
                 XSSFCell xssfCell = xssfRow.getCell(cellCoordinate.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                if (CellType.BLANK.equals(xssfCell.getCellTypeEnum())){
-                    cellItem.getFormat().ifPresent(format->{
-                        setCellStyle(xssfCell, format);
-                    });
-                }
-
-                String destinationStyle = xssfCell.getCellStyle().getDataFormatString();
 
                 cellItem.getValue().ifPresent(value -> {
+                    setCellType(xssfCell, cellItem.getCellFormat());
                     setCellValue(xssfCell, cellItem.getCellFormat(), value);
-                    setCellStyle(xssfCell, destinationStyle);
+                    setCellStyle(xssfCell, cellItem.getFormat().get());
                 });
             });
 
@@ -119,9 +118,11 @@ public class XlsxFileManager extends AbstractExcelFileManager {
 
             return result.toByteArray();
         } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid XLS destination file format.", e);
+            throw new IllegalArgumentException("Invalid XLSX destination file format.", e);
         }
     }
+
+
 
 
 }

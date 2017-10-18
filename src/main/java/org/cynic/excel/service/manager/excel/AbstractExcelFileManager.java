@@ -2,6 +2,8 @@ package org.cynic.excel.service.manager.excel;
 
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.cynic.excel.data.CellFormat;
 import org.cynic.excel.service.manager.FileManager;
 
@@ -28,7 +30,11 @@ abstract class AbstractExcelFileManager implements FileManager {
     CellFormat getCellFormat(Cell cell) {
         switch (cell.getCellTypeEnum()) {
             case NUMERIC:
-                return CellFormat.NUMERIC;
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return CellFormat.DATE;
+                } else {
+                    return CellFormat.NUMERIC;
+                }
             case BOOLEAN:
                 return CellFormat.BOOLEAN;
             case FORMULA:
@@ -67,8 +73,25 @@ abstract class AbstractExcelFileManager implements FileManager {
         }
     }
 
+    void setCellType(Cell cell, CellFormat cellFormat) {
+        switch (cellFormat) {
+            case NUMERIC:
+            case DATE:
+                cell.setCellType(CellType.NUMERIC);
+                break;
+            case BOOLEAN:
+                cell.setCellType(CellType.BOOLEAN);
+                break;
+            case FORMULA:
+                cell.setCellType(CellType.FORMULA);
+                break;
+            default:
+                cell.setCellType(CellType.STRING);
+        }
+    }
+
     private Date toDateValue(Object cellValue) {
-        return new Date(Double.class.cast(cellValue).longValue());
+        return Date.class.cast(cellValue);
     }
 
     private String toStringValue(Object cellValue) {
