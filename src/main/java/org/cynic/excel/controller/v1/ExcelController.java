@@ -1,6 +1,5 @@
 package org.cynic.excel.controller.v1;
 
-import org.apache.commons.compress.archivers.ArchiveOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -20,6 +19,7 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.Locale;
 import java.util.concurrent.Callable;
+import java.util.zip.Deflater;
 
 @RestController
 public class ExcelController extends AbstractV1Controller {
@@ -81,14 +81,15 @@ public class ExcelController extends AbstractV1Controller {
     private byte[] zipResponse(Pair<String, byte[]> mergedFileData) {
         try {
             ByteArrayOutputStream result = new ByteArrayOutputStream();
-            ArchiveOutputStream archiveOutputStream = new ZipArchiveOutputStream(result);
+            ZipArchiveOutputStream zipArchiveOutputStream = new ZipArchiveOutputStream(result);
+            zipArchiveOutputStream.setLevel(Deflater.BEST_COMPRESSION);
 
-            ZipArchiveEntry entry = new ZipArchiveEntry(mergedFileData.getKey());
-            entry.setSize(Array.getLength(mergedFileData.getValue()));
-            archiveOutputStream.putArchiveEntry(entry);
-            archiveOutputStream.write(mergedFileData.getValue());
-            archiveOutputStream.closeArchiveEntry();
-            archiveOutputStream.close();
+            ZipArchiveEntry zipArchiveEntry = new ZipArchiveEntry(mergedFileData.getKey());
+            zipArchiveEntry.setSize(Array.getLength(mergedFileData.getValue()));
+            zipArchiveOutputStream.putArchiveEntry(zipArchiveEntry);
+            zipArchiveOutputStream.write(mergedFileData.getValue());
+            zipArchiveOutputStream.closeArchiveEntry();
+            zipArchiveOutputStream.close();
 
             return result.toByteArray();
         } catch (IOException e) {
