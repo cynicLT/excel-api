@@ -32,7 +32,8 @@ public class XlsFileManager extends AbstractExcelFileManager {
                         HSSFRow hssfRow = hssfSheet.getRow(dataItem.getRow());
 
                         Validate.isTrue(hssfRow.getLastCellNum() > dataItem.getColumn(), String.format(Locale.getDefault(), "Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getColumn()));
-                        HSSFCell hssfCell = hssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        HSSFCell hssfCell = Optional.ofNullable(hssfRow.getCell(dataItem.getColumn())).
+                                orElseGet(() -> hssfRow.createCell(dataItem.getColumn()));
 
                         CellFormat cellFormat = getCellFormat(hssfCell);
 
@@ -64,7 +65,9 @@ public class XlsFileManager extends AbstractExcelFileManager {
                                     HSSFRow hssfRow = HSSFRow.class.cast(row);
                                     Validate.isTrue(hssfRow.getLastCellNum() > startData.getColumn(), String.format(Locale.getDefault(), "Bad copy data start column index '%d'. Provided source file has less columns.", startData.getColumn()));
 
-                                    HSSFCell hssfCell = hssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                    HSSFCell hssfCell = Optional.ofNullable(hssfRow.getCell(startData.getColumn())).
+                                            orElseGet(() -> hssfRow.createCell(startData.getColumn()));
+
                                     CellFormat cellFormat = getCellFormat(hssfCell);
 
                                     return new CellItem(cellFormat,
@@ -93,12 +96,12 @@ public class XlsFileManager extends AbstractExcelFileManager {
 
                 HSSFRow hssfRow = Optional.ofNullable(hssfSheet.getRow(cellCoordinate.getRow())).
                         orElseGet(() -> hssfSheet.createRow(cellCoordinate.getRow()));
-                HSSFCell hssfCell = hssfRow.getCell(cellCoordinate.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                HSSFCell hssfCell = Optional.ofNullable(hssfRow.getCell(cellCoordinate.getColumn())).
+                        orElseGet(() -> hssfRow.createCell(cellCoordinate.getColumn()));
 
                 cellItem.getValue().ifPresent(value -> {
-                    setCellType(hssfCell, cellItem.getCellFormat());
-                    setCellValue(hssfCell, cellItem.getCellFormat(), value);
                     setCellStyle(hssfCell, cellItem.getFormat().get());
+                    setCellValue(hssfCell, cellItem.getCellFormat(), value);
                 });
             });
 

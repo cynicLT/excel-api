@@ -3,7 +3,6 @@ package org.cynic.excel.service.manager.excel;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.*;
 import org.cynic.excel.data.CellFormat;
@@ -33,7 +32,9 @@ public class XlsxFileManager extends AbstractExcelFileManager {
                         XSSFRow xssfRow = xssfSheet.getRow(dataItem.getRow());
 
                         Validate.isTrue(xssfRow.getLastCellNum() > dataItem.getColumn(), String.format(Locale.getDefault(), "Bad constraint data column index '%d'. Provided source file has less columns.", dataItem.getColumn()));
-                        XSSFCell xssfCell = xssfRow.getCell(dataItem.getColumn(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+
+                        XSSFCell xssfCell = Optional.ofNullable(xssfRow.getCell(dataItem.getColumn())).
+                                orElseGet(() -> xssfRow.createCell(dataItem.getColumn()));
 
                         CellFormat cellFormat = getCellFormat(xssfCell);
 
@@ -72,7 +73,9 @@ public class XlsxFileManager extends AbstractExcelFileManager {
                                                     startData.getColumn())
                                     );
 
-                                    XSSFCell xssfCell = xssfRow.getCell(startData.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                                    XSSFCell xssfCell = Optional.ofNullable(xssfRow.getCell(startData.getColumn())).
+                                            orElseGet(() -> xssfRow.createCell(startData.getColumn()));
+
                                     CellFormat cellFormat = getCellFormat(xssfCell);
 
                                     return new CellItem(cellFormat,
@@ -96,18 +99,17 @@ public class XlsxFileManager extends AbstractExcelFileManager {
             XSSFWorkbook xssfWorkbook = new XSSFWorkbook(new ByteArrayInputStream(destination));
             XSSFSheet xssfSheet = xssfWorkbook.getSheetAt(0);
 
-            readSourceData.forEach(cellItem -> {
+            readSourceData.stream().sequential().forEach(cellItem -> {
                 DataItem cellCoordinate = cellItem.getCoordinate();
 
                 XSSFRow xssfRow = Optional.ofNullable(xssfSheet.getRow(cellCoordinate.getRow())).
                         orElseGet(() -> xssfSheet.createRow(cellCoordinate.getRow()));
-                XSSFCell xssfCell = xssfRow.getCell(cellCoordinate.getColumn(), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-
+                XSSFCell xssfCell = Optional.ofNullable(xssfRow.getCell(cellCoordinate.getColumn())).
+                        orElseGet(() -> xssfRow.createCell(cellCoordinate.getColumn()));
 
                 cellItem.getValue().ifPresent(value -> {
-                    setCellType(xssfCell, cellItem.getCellFormat());
-                    setCellValue(xssfCell, cellItem.getCellFormat(), value);
                     setCellStyle(xssfCell, cellItem.getFormat().get());
+                    setCellValue(xssfCell, cellItem.getCellFormat(), value);
                 });
             });
 
@@ -121,8 +123,6 @@ public class XlsxFileManager extends AbstractExcelFileManager {
             throw new IllegalArgumentException("Invalid XLSX destination file format.", e);
         }
     }
-
-
 
 
 }
