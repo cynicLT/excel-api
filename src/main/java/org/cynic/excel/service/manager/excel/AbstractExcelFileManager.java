@@ -65,28 +65,7 @@ abstract class AbstractExcelFileManager implements FileManager {
         CellStyle cellStyle = workbook.createCellStyle();
         cellStyle.setDataFormat(creationHelper.createDataFormat().getFormat(format));
 
-        copyCellStyle(cell.getCellStyle(), cellStyle);
         cell.setCellStyle(cellStyle);
-    }
-
-    private void copyCellStyle(CellStyle from, CellStyle to) {
-        to.setBorderBottom(from.getBorderBottomEnum());
-        to.setBorderLeft(from.getBorderLeftEnum());
-        to.setBorderRight(from.getBorderRightEnum());
-        to.setBorderTop(from.getBorderTopEnum());
-        to.setTopBorderColor(from.getTopBorderColor());
-        to.setBottomBorderColor(from.getBottomBorderColor());
-        to.setRightBorderColor(from.getRightBorderColor());
-        to.setLeftBorderColor(from.getLeftBorderColor());
-        to.setFillBackgroundColor(from.getFillBackgroundColor());
-        to.setFillForegroundColor(from.getFillForegroundColor());
-        to.setFillPattern(from.getFillPatternEnum());
-        to.setIndention(from.getIndention());
-        to.setShrinkToFit(from.getShrinkToFit());
-        to.setRotation(from.getRotation());
-        to.setAlignment(from.getAlignmentEnum());
-        to.setVerticalAlignment(from.getVerticalAlignmentEnum());
-        to.setWrapText(from.getWrapText());
     }
 
     private Calendar toCalendar(Object cellValue) {
