@@ -97,9 +97,11 @@ public class XlsxFileManager extends AbstractExcelFileManager {
     public byte[] writeSourceData(List<CellItem> readSourceData, byte[] destination) {
         try {
             XSSFWorkbook xssfWorkbook = new XSSFWorkbook(new ByteArrayInputStream(destination));
+
             XSSFSheet xssfSheet = xssfWorkbook.getSheetAt(0);
 
-            readSourceData.stream().sequential().forEach(cellItem -> {
+
+            readSourceData.forEach(cellItem -> {
                 DataItem cellCoordinate = cellItem.getCoordinate();
 
                 XSSFRow xssfRow = Optional.ofNullable(xssfSheet.getRow(cellCoordinate.getRow())).
@@ -108,7 +110,7 @@ public class XlsxFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> xssfRow.createCell(cellCoordinate.getColumn()));
 
                 cellItem.getValue().ifPresent(value -> {
-                    setCellStyle(xssfCell, cellItem.getFormat().get());
+                    setCellStyle(xssfWorkbook, xssfCell, cellItem.getFormat().get());
                     setCellValue(xssfCell, cellItem.getCellFormat(), value);
                 });
             });

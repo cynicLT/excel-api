@@ -100,7 +100,7 @@ public class XlsFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> hssfRow.createCell(cellCoordinate.getColumn()));
 
                 cellItem.getValue().ifPresent(value -> {
-                    setCellStyle(hssfCell, cellItem.getFormat().get());
+                    setCellStyle(hssfWorkbook, hssfCell, cellItem.getFormat().get());
                     setCellValue(hssfCell, cellItem.getCellFormat(), value);
                 });
             });

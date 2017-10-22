@@ -1,10 +1,6 @@
 package org.cynic.excel.service.manager.excel;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CreationHelper;
-import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.RichTextString;
-import org.apache.poi.xssf.usermodel.XSSFRichTextString;
+import org.apache.poi.ss.usermodel.*;
 import org.cynic.excel.data.CellFormat;
 import org.cynic.excel.service.manager.FileManager;
 
@@ -28,30 +24,22 @@ abstract class AbstractExcelFileManager implements FileManager {
     }
 
     CellFormat getCellFormat(Cell cell) {
-        switch (cell.getCellType()) {
-            case Cell.CELL_TYPE_NUMERIC:
+        switch (cell.getCellTypeEnum()) {
+            case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell)) {
                     return CellFormat.DATE;
                 } else {
                     return CellFormat.NUMERIC;
                 }
-            case Cell.CELL_TYPE_BOOLEAN:
+            case BOOLEAN:
                 return CellFormat.BOOLEAN;
-            case Cell.CELL_TYPE_FORMULA:
+            case FORMULA:
                 return CellFormat.FORMULA;
             default:
                 return CellFormat.STRING;
         }
     }
 
-    void setCellStyle(Cell cell, String format) {
-        CreationHelper creationHelper =  cell.getRow().getSheet().getWorkbook().getCreationHelper();
-
-
-
-        cell.getCellStyle().setDataFormat(creationHelper.createDataFormat().getFormat(format));
-
-    }
 
     void setCellValue(Cell cell, CellFormat cellFormat, Object cellValue) {
         switch (cellFormat) {
@@ -70,6 +58,35 @@ abstract class AbstractExcelFileManager implements FileManager {
             default:
                 cell.setCellValue(toStringValue(cellValue));
         }
+    }
+
+    void setCellStyle(Workbook workbook, Cell cell, String format) {
+        CreationHelper creationHelper = workbook.getCreationHelper();
+        CellStyle cellStyle = workbook.createCellStyle();
+        cellStyle.setDataFormat(creationHelper.createDataFormat().getFormat(format));
+
+        copyCellStyle(cell.getCellStyle(), cellStyle);
+        cell.setCellStyle(cellStyle);
+    }
+
+    private void copyCellStyle(CellStyle from, CellStyle to) {
+        to.setBorderBottom(from.getBorderBottomEnum());
+        to.setBorderLeft(from.getBorderLeftEnum());
+        to.setBorderRight(from.getBorderRightEnum());
+        to.setBorderTop(from.getBorderTopEnum());
+        to.setTopBorderColor(from.getTopBorderColor());
+        to.setBottomBorderColor(from.getBottomBorderColor());
+        to.setRightBorderColor(from.getRightBorderColor());
+        to.setLeftBorderColor(from.getLeftBorderColor());
+        to.setFillBackgroundColor(from.getFillBackgroundColor());
+        to.setFillForegroundColor(from.getFillForegroundColor());
+        to.setFillPattern(from.getFillPatternEnum());
+        to.setIndention(from.getIndention());
+        to.setShrinkToFit(from.getShrinkToFit());
+        to.setRotation(from.getRotation());
+        to.setAlignment(from.getAlignmentEnum());
+        to.setVerticalAlignment(from.getVerticalAlignmentEnum());
+        to.setWrapText(from.getWrapText());
     }
 
     private Calendar toCalendar(Object cellValue) {
