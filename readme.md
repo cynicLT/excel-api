@@ -31,16 +31,16 @@ To create and export `client security token` use following instruction:
 7. Click the **Download JSON** button to the right of the client ID.
 
 To authorize application following steps must be done:
-Due to the `Google API` limitations this step can not be done automatically. Following steps must be done:
+Due to the `Google API` limitations this step can not be done automatically. Following steps must be done locally:
 
 1. Build application `mvn clean package`
 2. Save exported `client security token` in application root directory under the name `client_secret.json`
 2. Run application `java -jar target/excel-api.jar` 
 3. While starting will see following warning messages in console:
-```text
-[WARN] Unable to read stored authorization token from [client_token_store]
-[WARN] This application wasn't authorized to access Google Drive. Please use this url to create credentials token: [XXXX]
-```
+    ```text
+    [WARN] Unable to read stored authorization token from [client_token_store]
+    [WARN] This application wasn't authorized to access Google Drive. Please use this url to create credentials token: [XXXX]
+    ```
 4. Open provided URL in your browser (there will be callback to Your machine from `Google`)
 5. Authorization token will be stored in `client_token_store` directory
 
@@ -90,10 +90,24 @@ rules:
           row: 1
           column: 13
 ...
-... 
+...
 ```
-This rule states that
-
+This rule states:
+```text 
+if 
+    A1 == 'VIN' and
+    F1 ==  'Item UPC' and 
+    H1 == 'Current Everyday Cost' and
+    M1 == 'Promo Cost'
+then copy from 
+    I1 cell to the end of column,
+    J1 cell to the end of column,
+    K1 cell to the end of column,
+    L1 cell to the end of column,
+    M1 cell to the end of column,
+    N1 cell to the end of column.
+```
+Rule itself (`expression`) is a JavaScript statement which must return `true` or `false`;
 ###File readers
 
 ####CSV file reader
@@ -103,6 +117,10 @@ csv:
   separator: ','
 ```
 
-
+###Profiles
+There is preconfigured `Heroku` profile. To run application in `Heroku` just link your repository with `Heroku` account and make a deploy. Running process parameters are defined in `Procfile`:
+```text
+web: java $JAVA_OPTS -Dspring.profiles.active=heroku -Dserver.port=$PORT -jar target/excel-api.jar
+```
 
 
