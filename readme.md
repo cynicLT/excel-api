@@ -122,5 +122,8 @@ There is preconfigured `Heroku` profile. To run application in `Heroku` just lin
 ```text
 web: java $JAVA_OPTS -Dspring.profiles.active=heroku -Dserver.port=$PORT -jar target/excel-api.jar
 ```
-
+###Api URL's
+About files. There is 2 urls: 
+`/merge-files` - it merges and saves file in google drive. On success it return 204 (no any data returned). 
+`/merge-files-instant` - it just merges files and returns zipped result. 
 
