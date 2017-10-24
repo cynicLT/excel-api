@@ -124,6 +124,6 @@ web: java $JAVA_OPTS -Dspring.profiles.active=heroku -Dserver.port=$PORT -jar ta
 ```
 ###Api URL's
 About files. There is 2 urls: 
-`/merge-files` - it merges and saves file in google drive. On success it return 204 (no any data returned). 
-`/merge-files-instant` - it just merges files and returns zipped result. 
+`/v1/merge-files` - it merges and saves file in google drive. On success it return 204 (no any data returned). 
+`/v1/merge-files-instant` - it just merges files and returns zipped result. 
 

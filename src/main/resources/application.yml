@@ -72,6 +72,47 @@ rules:
       - start:
           row: 1
           column: 13
+  - name: 'Fresh Market'
+    constraint:
+      data:
+        - row: 3
+          column: 7
+        - row: 4
+          column: 7
+      expression: |
+        return data[0] =='Vendor Name:' && data[1] == 'Contact:'
+    values:
+      - start:
+          row: 10
+          column: 12
+      - start:
+          row: 10
+          column: 14
+      - start:
+          row: 10
+          column: 17
+      - start:
+          row: 10
+          column: 18
+      - start:
+          row: 10
+          column: 19
+  - name: 'Zip Trip'
+    constraint:
+      data:
+        - row: 1
+          column: 3
+        - row: 1
+          column: 4
+      expression: |
+        return data[0] =='Item UPC' && data[1] == 'Item Desc'
+    values:
+      - start:
+          row: 3
+          column: 45
+      - start:
+          row: 3
+          column: 56
 csv:
   separator: ','
 ---
