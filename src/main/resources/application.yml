@@ -4,8 +4,8 @@ server:
       enabled: false
   port: 8081
 
-#logging:
-#  level.: ERROR
+logging:
+  level.: INFO
 
 spring:
   jmx:
@@ -21,7 +21,10 @@ spring:
     formcontent:
       putfilter:
         enabled: false
-
+  http:
+    multipart:
+      max-file-size: '10MB'
+      max-request-size: '20MB'
 security:
   basic:
     realm: 'JAEX Authorization'
@@ -32,12 +35,10 @@ security:
   sessions: 'stateless'
   ignored: '/error'
 
-
 google:
   api:
     client_security_path: 'client_secret.json'
     client_token_store: 'client_token_store'
-
 
 rules:
   - name: 'Town Pump'
