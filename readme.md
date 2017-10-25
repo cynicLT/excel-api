@@ -52,6 +52,24 @@ google:
     client_security_path: 'client_secret.json'  # client security token
     client_token_store: 'client_token_store'    # authorization data
 ```
+###File upload size limitations
+Uploaded file size limitations are defined in configurations section:
+```yaml
+spring:
+  ...
+  ...
+  http:
+    multipart:
+      max-file-size: '15MB'
+      max-request-size: '20MB'
+```
+Current limitations are following:
+* maximum file size - 15 MB
+* maximum request size - 20 MB
+
+You can make request with following files:
+* 15 MB (source) + 5 MB (destinaion) << 20 MB (total request limitations)
+* 5 MB (source) + 15 MB (destinaion) << 20 MB (total request limitations)
 ###Mapping configuration
 
 Mapping configuration is defined in specific structure to make dynamic configuration;
@@ -116,6 +134,8 @@ To configure CSV file value separator use following configuration (default is ",
 csv:
   separator: ','
 ```
+
+
 
 ###Profiles
 There is preconfigured `Heroku` profile. To run application in `Heroku` just link your repository with `Heroku` account and make a deploy. Running process parameters are defined in `Procfile`:

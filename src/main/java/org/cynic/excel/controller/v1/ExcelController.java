@@ -18,7 +18,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.Locale;
-import java.util.concurrent.Callable;
 import java.util.zip.Deflater;
 
 @RestController
@@ -32,36 +31,33 @@ public class ExcelController extends AbstractV1Controller {
     }
 
     @PostMapping("/merge-files")
-    public Callable<ResponseEntity> mergeFilesGoogle(@RequestParam("sourceFile") MultipartFile sourceFile,
-                                                     @RequestParam("destinationFile") MultipartFile destinationFile) {
+    public ResponseEntity<?> mergeFilesGoogle(@RequestParam("sourceFile") MultipartFile sourceFile,
+                                              @RequestParam("destinationFile") MultipartFile destinationFile) throws IOException {
 
-        return () -> {
-            Pair<String, byte[]> mergedFileData = mergeFiles(sourceFile, destinationFile);
-            excelService.saveFile(mergedFileData);
+        Pair<String, byte[]> mergedFileData = mergeFiles(sourceFile, destinationFile);
+        excelService.saveFile(mergedFileData);
 
-            return ResponseEntity.noContent().build();
-        };
+        return ResponseEntity.noContent().build();
     }
 
 
     @PostMapping("/merge-files-instant")
-    public Callable<ResponseEntity> mergeFilesInstant(@RequestParam("sourceFile") MultipartFile sourceFile,
-                                                      @RequestParam("destinationFile") MultipartFile destinationFile) {
+    public ResponseEntity<byte[]> mergeFilesInstant(@RequestParam("sourceFile") MultipartFile sourceFile,
+                                                    @RequestParam("destinationFile") MultipartFile destinationFile) throws IOException {
 
-        return () -> {
-            Pair<String, byte[]> mergedFileData = mergeFiles(sourceFile, destinationFile);
+        Pair<String, byte[]> mergedFileData = mergeFiles(sourceFile, destinationFile);
 
-            return ResponseEntity.ok().
-                    contentType(new MediaType("application", "zip")).
-                    header("Content-Disposition",
-                            String.format(
-                                    Locale.getDefault(),
-                                    "attachment; filename=\"%s.zip\"",
-                                    StringUtils.substringBeforeLast(mergedFileData.getKey(), ".")
-                            )
-                    ).
-                    body(zipResponse(mergedFileData));
-        };
+        return ResponseEntity.ok().
+                contentType(new MediaType("application", "zip")).
+                header("Content-Disposition",
+                        String.format(
+                                Locale.getDefault(),
+                                "attachment; filename=\"%s.zip\"",
+                                StringUtils.substringBeforeLast(mergedFileData.getKey(), ".")
+                        )
+                ).
+                body(zipResponse(mergedFileData));
+
     }
 
     private Pair<String, byte[]> mergeFiles(@RequestParam("sourceFile") MultipartFile sourceFile, @RequestParam("destinationFile") MultipartFile destinationFile) throws IOException {
