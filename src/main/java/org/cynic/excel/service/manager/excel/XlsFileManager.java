@@ -4,6 +4,7 @@ import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.cynic.excel.data.CellFormat;
 import org.cynic.excel.data.CellItem;
@@ -15,7 +16,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -90,6 +93,7 @@ public class XlsFileManager extends AbstractExcelFileManager {
         try {
             HSSFWorkbook hssfWorkbook = new HSSFWorkbook(new ByteArrayInputStream(destination));
             HSSFSheet hssfSheet = hssfWorkbook.getSheetAt(0);
+            Map<String, CellStyle> cellStyles = new ConcurrentHashMap<>();
 
             readSourceData.forEach(cellItem -> {
                 DataItem cellCoordinate = cellItem.getCoordinate();
@@ -100,7 +104,12 @@ public class XlsFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> hssfRow.createCell(cellCoordinate.getColumn()));
 
                 cellItem.getValue().ifPresent(value -> {
-                    setCellStyle(hssfWorkbook, hssfCell, cellItem.getFormat().get());
+                    CellStyle cellStyle = cellStyles.computeIfAbsent(
+                            cellItem.getFormat().get(),
+                            format -> createCellStyle(hssfWorkbook, format)
+                    );
+
+                    hssfCell.setCellStyle(cellStyle);
                     setCellValue(hssfCell, cellItem.getCellFormat(), value);
                 });
             });

@@ -3,6 +3,7 @@ package org.cynic.excel.service.manager.excel;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.*;
 import org.cynic.excel.data.CellFormat;
@@ -15,7 +16,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -97,9 +100,8 @@ public class XlsxFileManager extends AbstractExcelFileManager {
     public byte[] writeSourceData(List<CellItem> readSourceData, byte[] destination) {
         try {
             XSSFWorkbook xssfWorkbook = new XSSFWorkbook(new ByteArrayInputStream(destination));
-
             XSSFSheet xssfSheet = xssfWorkbook.getSheetAt(0);
-
+            Map<String, CellStyle> cellStyles = new ConcurrentHashMap<>();
 
             readSourceData.forEach(cellItem -> {
                 DataItem cellCoordinate = cellItem.getCoordinate();
@@ -110,7 +112,12 @@ public class XlsxFileManager extends AbstractExcelFileManager {
                         orElseGet(() -> xssfRow.createCell(cellCoordinate.getColumn()));
 
                 cellItem.getValue().ifPresent(value -> {
-                    setCellStyle(xssfWorkbook, xssfCell, cellItem.getFormat().get());
+                    CellStyle cellStyle = cellStyles.computeIfAbsent(
+                            cellItem.getFormat().get(),
+                            format -> createCellStyle(xssfWorkbook, format)
+                    );
+
+                    xssfCell.setCellStyle(cellStyle);
                     setCellValue(xssfCell, cellItem.getCellFormat(), value);
                 });
             });
@@ -125,6 +132,4 @@ public class XlsxFileManager extends AbstractExcelFileManager {
             throw new IllegalArgumentException("Invalid XLSX destination file format.", e);
         }
     }
-
-
 }

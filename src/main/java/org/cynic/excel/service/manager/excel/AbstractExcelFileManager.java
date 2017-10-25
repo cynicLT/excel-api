@@ -60,12 +60,12 @@ abstract class AbstractExcelFileManager implements FileManager {
         }
     }
 
-    void setCellStyle(Workbook workbook, Cell cell, String format) {
+    CellStyle createCellStyle(Workbook workbook, String format) {
         CreationHelper creationHelper = workbook.getCreationHelper();
         CellStyle cellStyle = workbook.createCellStyle();
         cellStyle.setDataFormat(creationHelper.createDataFormat().getFormat(format));
 
-        cell.setCellStyle(cellStyle);
+        return  cellStyle;
     }
 
     private Calendar toCalendar(Object cellValue) {
