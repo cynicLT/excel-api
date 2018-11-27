@@ -7,7 +7,7 @@ All configuration options are defined in `application.yml`. To run application w
 java -Dspring.config.location=file:///d:/application.yml -jar target/excel-api.jar
 ```
 
-###Security
+### Security
 
 Security mechanism is implemented using `Basic` with `stateless` session management (on each new request authorization header must be provided). To define authorized username and password used following configuration
 ```yaml
@@ -17,7 +17,7 @@ security:
     password: 'YYY'       # authorized password
 ```
 
-###Google OAuth
+### Google OAuth
 
 To get access to the `Google Drive` client security token must be created and application must be authorized.
 To create and export `client security token` use following instruction:
@@ -52,7 +52,7 @@ google:
     client_security_path: 'client_secret.json'  # client security token
     client_token_store: 'client_token_store'    # authorization data
 ```
-###File upload size limitations
+### File upload size limitations
 Uploaded file size limitations are defined in configurations section:
 ```yaml
 spring:
@@ -70,7 +70,7 @@ Current limitations are following:
 You can make request with following files:
 * 15 MB (source) + 5 MB (destinaion) << 20 MB (total request limitations)
 * 5 MB (source) + 15 MB (destinaion) << 20 MB (total request limitations)
-###Mapping configuration
+### Mapping configuration
 
 Mapping configuration is defined in specific structure to make dynamic configuration;
 ```yaml
@@ -126,9 +126,9 @@ then copy from
     N1 cell to the end of column.
 ```
 Rule itself (`expression`) is a JavaScript statement which must return `true` or `false`;
-###File readers
+### File readers
 
-####CSV file reader
+#### CSV file reader
 To configure CSV file value separator use following configuration (default is ","):
 ```yaml
 csv:
@@ -137,12 +137,12 @@ csv:
 
 
 
-###Profiles
+### Profiles
 There is preconfigured `Heroku` profile. To run application in `Heroku` just link your repository with `Heroku` account and make a deploy. Running process parameters are defined in `Procfile`:
 ```text
 web: java $JAVA_OPTS -Dspring.profiles.active=heroku -Dserver.port=$PORT -jar target/excel-api.jar
 ```
-###Api URL's
+### Api URL's
 About files. There is 2 urls: 
 `/v1/merge-files` - it merges and saves file in google drive. On success it return 204 (no any data returned). 
 `/v1/merge-files-instant` - it just merges files and returns zipped result. 
